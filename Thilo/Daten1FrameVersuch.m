@@ -58,3 +58,8 @@ oRS.oEPRadarFMCW.direction = 'Up Only';
 
 % 3. Trigger radar chirp, get the raw data and plot it
 [mxRawData, sInfo] = oRS.oEPRadarBase.get_frame_data; % get raw data
+frame = mxRawData;
+frame_count=sInfo.frame_number;
+calib_data=(oRs.oEPCalibration.get_calibration_data)';
+sXML=
+Header
