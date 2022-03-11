@@ -107,6 +107,41 @@ oRS.oEPRadarFMCW.direction = 'Up Only';
 [mxRawData, sInfo] = oRS.oEPRadarBase.get_frame_data; % get raw data
 frame = mxRawData;
 frame_count=sInfo.frame_number;
-calib_data= oRs.oEPCalibration.get_calibration_data(oRs);
+calib_data= oRS.oEPCalibration.get_calibration_data';
+
+%% Extract FMCW chirp configuration from device data
+% Frame duration
+frame_time = str2double(sXML.Device.Acquisition.Attributes.acquisitionRate) * 1e-3;
+
+% Pulse repetition time
+up_chirp_duration = str2double(sXML.Device.BaseEndpoint.chirpDuration_ns.Text) * 1e-9;
+if( isfield(sXML, 'chirpDuration_ns'))
+    PRT = str2double(sXML.Device.BaseEndpoint.pulseRepetitionTime_ns.Text) * 1e-9;
+else
+    % PRT not available in legacy file format
+    PRT = up_chirp_duration + down_chirp_duration + chirp_to_chirp_delay; % Pulse repetition time : Delay between the start of two chirps
+end
+
+% Bandwidth
+BW = (str2double(sXML.Device.FmcwEndpoint.FmcwConfiguration.upperFrequency_kHz.Text) - str2double(sXML.Device.FmcwEndpoint.FmcwConfiguration.lowerFrequency_kHz.Text)) * 1e3;
+
+num_Tx_antennas = str2double(sXML.Device.BaseEndpoint.DeviceInfo.numAntennasTx.Text); % Number of Tx antennas
+num_Rx_antennas = length(strfind(dec2bin(str2double(sXML.Device.BaseEndpoint.FrameFormat.rxMask.Text)),'1')); % Number of Rx antennas
+
+% Carrier frequency
+fC = (str2double(sXML.Device.FmcwEndpoint.FmcwConfiguration.upperFrequency_kHz.Text) + str2double(sXML.Device.FmcwEndpoint.FmcwConfiguration.lowerFrequency_kHz.Text)) / 2 * 1e3;
+
+% Number of ADC samples per chrip
+NTS = str2double(sXML.Device.BaseEndpoint.FrameFormat.numSamplesPerChirp.Text);
+
+% Number of chirps per frame
+PN = str2double(sXML.Device.BaseEndpoint.FrameFormat.numChirpsPerFrame.Text);
+
+% Sampling frequency
+fS = str2double(sXML.Device.AdcxmcEndpoint.AdcxmcConfiguration.samplerateHz.Text);
+
+% Angle Offset
+angle_offset = str2double(sXML.Device.CalibrationEndpoint.AlgoCalibration.angleOffset_deg.Text);
+
 
 
