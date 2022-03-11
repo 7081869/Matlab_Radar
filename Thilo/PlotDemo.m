@@ -37,7 +37,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 clc
 disp('******************************************************************');
-addpath('..\..\RadarSystemImplementation'); % add Matlab API
+addpath('RadarSystemImplementation'); % add Matlab API
 clear all %#ok<CLSCR>
 close all
 resetRS; % close and delete ports
