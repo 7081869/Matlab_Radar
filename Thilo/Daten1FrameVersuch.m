@@ -95,11 +95,15 @@ oRS = RadarSystem(szPort); % creates the Radarsystem API object
 % 2. Set endpoint properties
 % The automatic trigger runs after startup by default
 oRS.oEPRadarBase.stop_automatic_frame_trigger;      % stop it to change values
-oRS.oEPRadarFMCW.lower_frequency_kHz = 24050000;    % lower FMCW frequency
-oRS.oEPRadarFMCW.upper_frequency_kHz = 24220000;    % upper FMCW frequency
+lower_frequency = 24050000;  
+upper_frequency = 24220000;
+num_samples_per_chirp = 256;
+num_chirps_per_frame = 1;
+oRS.oEPRadarFMCW.lower_frequency_kHz = lower_frequency;    % lower FMCW frequency
+oRS.oEPRadarFMCW.upper_frequency_kHz = upper_frequency;    % upper FMCW frequency
 oRS.oEPRadarFMCW.tx_power = oRS.oEPRadarBase.max_tx_power;
-oRS.oEPRadarBase.num_chirps_per_frame = 1;
-oRS.oEPRadarBase.num_samples_per_chirp = 256;       % up to 4095 for single RX channel
+oRS.oEPRadarBase.num_chirps_per_frame = num_chirps_per_frame;
+oRS.oEPRadarBase.num_samples_per_chirp = num_samples_per_chirp;       % up to 4095 for single RX channel
 oRS.oEPRadarBase.rx_mask = bin2dec('0011');         % enable RX1 & RX2 antenna
 oRS.oEPRadarFMCW.direction = 'Up Only';
 
@@ -129,19 +133,18 @@ num_Tx_antennas = str2double(sXML.Device.BaseEndpoint.DeviceInfo.numAntennasTx.T
 num_Rx_antennas = length(strfind(dec2bin(str2double(sXML.Device.BaseEndpoint.FrameFormat.rxMask.Text)),'1')); % Number of Rx antennas
 
 % Carrier frequency
-fC = (str2double(sXML.Device.FmcwEndpoint.FmcwConfiguration.upperFrequency_kHz.Text) + str2double(sXML.Device.FmcwEndpoint.FmcwConfiguration.lowerFrequency_kHz.Text)) / 2 * 1e3;
+fC = (str2double(upper_frequency) + str2double(lower_frequency)) / 2 * 1e3;
 
 % Number of ADC samples per chrip
-NTS = str2double(sXML.Device.BaseEndpoint.FrameFormat.numSamplesPerChirp.Text);
+NTS = num_samples_per_chirp;
 
 % Number of chirps per frame
-PN = str2double(sXML.Device.BaseEndpoint.FrameFormat.numChirpsPerFrame.Text);
+PN = num_chirps_per_frame;
 
 % Sampling frequency
-fS = str2double(sXML.Device.AdcxmcEndpoint.AdcxmcConfiguration.samplerateHz.Text);
+fS = num_samples_per_chirp/PRT;
 
 % Angle Offset
-angle_offset = str2double(sXML.Device.CalibrationEndpoint.AlgoCalibration.angleOffset_deg.Text);
-
+angle_offset = -7;
 
 
