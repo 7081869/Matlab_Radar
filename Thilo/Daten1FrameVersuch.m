@@ -61,31 +61,11 @@ c0 = 3e8;                       % Speed of light in vacuum
 down_chirp_duration = 100e-6;   % Time required for down chirp
 chirp_to_chirp_delay = 100e-6;  % Standby time interval between consecutive chirps
 
-%% Raw Data Name
-%fdata = 'data_P2G_1person_legacy';
-fdata = 'data_P2G_1person';
-
-%% !!!!!!!! 
-%  to parse the XML file, the package XML2STRUCT is required.
-%  Please download the package from
-%  https://de.mathworks.com/matlabcentral/fileexchange/28518-xml2struct
-%  unzip it and copy the files into this folder
-%  the function f_parse_data is not compatible with the build-in matlab
-%  function!
-%
-if not(isfile("xml2struct.m"))
-   error("Please install xml2struct.m, please see comments in the source file above!") 
-end
-
-%% Load the Raw Data file
-[frame, frame_count, calib_data, sXML, Header] = f_parse_data(fdata); % Data Parser
 
 %% Load Real Raw Data
-clc
+
 disp('******************************************************************');
 addpath('RadarSystemImplementation'); % add Matlab API
-clear all %#ok<CLSCR>
-close all
 resetRS; % close and delete ports
 
 % 1. Create radar system object
@@ -128,7 +108,7 @@ num_Rx_antennas = 2; % Number of Rx antennas, constant
 % Carrier frequency
 fC = (str2double(upper_frequency) + str2double(lower_frequency)) / 2 * 1e3;
 
-% Number of ADC samples per chrip
+% Number of ADC samples per chirp
 NTS = num_samples_per_chirp;
 
 % Number of chirps per frame
@@ -157,18 +137,14 @@ lambda = c0 / fC;
 
 Hz_to_mps_constant = lambda / 2;                % Conversion factor from frequency to speed in m/s
 
-if isfield(Header, 'file_type_id')
-    IF_scale = 16 * 3.3;                        % Scaling factor for signal strength for release >= 2.0.3
-else
-    IF_scale = 16 * 3.3 * range_fft_size / NTS; % IF scale for release < 2.0.3
-end
+IF_scale = 16 * 3.3 * range_fft_size / NTS; % IF scale 
 
 range_window_func = 2 * blackman(NTS);          % Window function for Range
 doppler_window_func = 2 * chebwin(PN);          % Window function for Doppler
 
 R_max = NTS * c0 / (2 * BW);                    % Maximum theoretical range for the system in m
 dist_per_bin = R_max / range_fft_size;          % Resolution of every range bin in m
-array_bin_range = (0:range_fft_size-1) * dist_per_bin; % Vector of Range in m
+array_bin_range = (0:range_fft_size-1) * double(dist_per_bin); % Vector of Range in m
 
 fD_max = 1 / (2 * PRT);                         % Maximum theoretical calue of the Doppler
 fD_per_bin = fD_max / (Doppler_fft_size/2);     % Value of doppler resolution per bin
