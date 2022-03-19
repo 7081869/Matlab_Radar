@@ -114,23 +114,16 @@ frame_count=sInfo.frame_number;
 calib_data= oRS.oEPCalibration.get_calibration_data';
 
 %% Extract FMCW chirp configuration from device data
-% Frame duration
-frame_time = str2double(sXML.Device.Acquisition.Attributes.acquisitionRate) * 1e-3;
-
 % Pulse repetition time
-up_chirp_duration = str2double(sXML.Device.BaseEndpoint.chirpDuration_ns.Text) * 1e-9;
-if( isfield(sXML, 'chirpDuration_ns'))
-    PRT = str2double(sXML.Device.BaseEndpoint.pulseRepetitionTime_ns.Text) * 1e-9;
-else
-    % PRT not available in legacy file format
-    PRT = up_chirp_duration + down_chirp_duration + chirp_to_chirp_delay; % Pulse repetition time : Delay between the start of two chirps
-end
+up_chirp_duration = 300e-6; % Standard Wert, änderbar /ablesbar in der config.h unter Dave Project/P2G_FMCW
+
+PRT = up_chirp_duration + down_chirp_duration + chirp_to_chirp_delay; % Pulse repetition time : Delay between the start of two chirps
 
 % Bandwidth
-BW = (str2double(sXML.Device.FmcwEndpoint.FmcwConfiguration.upperFrequency_kHz.Text) - str2double(sXML.Device.FmcwEndpoint.FmcwConfiguration.lowerFrequency_kHz.Text)) * 1e3;
+BW = (oRS.oEPRadarFMCW.upper_frequency_kHz - oRS.oEPRadarFMCW.lower_frequency_kHz) * 1e3;
 
-num_Tx_antennas = str2double(sXML.Device.BaseEndpoint.DeviceInfo.numAntennasTx.Text); % Number of Tx antennas
-num_Rx_antennas = length(strfind(dec2bin(str2double(sXML.Device.BaseEndpoint.FrameFormat.rxMask.Text)),'1')); % Number of Rx antennas
+num_Tx_antennas = 1; % Number of Tx antennas, constant
+num_Rx_antennas = 2; % Number of Rx antennas, constant
 
 % Carrier frequency
 fC = (str2double(upper_frequency) + str2double(lower_frequency)) / 2 * 1e3;
@@ -147,4 +140,304 @@ fS = num_samples_per_chirp/PRT;
 % Angle Offset
 angle_offset = -7;
 
+%% Algorithm Settings
+range_fft_size   = 256; % Zero padding by 2
+Doppler_fft_size =  32; % Zero padding by 2
+
+range_threshold   = 80; % Amplitude threshold to find peaks in Range FFT
+Doppler_threshold = 50; % Amplitude threshold to find peaks in Doppler FFT
+
+min_distance =  0.9; % Minimum distance of the target from the radar (recommended to be at least 0.9 m)
+max_distance = 15.0; % Maximum distance of the target from the radar (recommended to be maximum 25.0 m)
+
+max_num_targets = 5; % Maximum number of targets that can be detected
+
+%% Calculate Derived Parameters
+lambda = c0 / fC;
+
+Hz_to_mps_constant = lambda / 2;                % Conversion factor from frequency to speed in m/s
+
+if isfield(Header, 'file_type_id')
+    IF_scale = 16 * 3.3;                        % Scaling factor for signal strength for release >= 2.0.3
+else
+    IF_scale = 16 * 3.3 * range_fft_size / NTS; % IF scale for release < 2.0.3
+end
+
+range_window_func = 2 * blackman(NTS);          % Window function for Range
+doppler_window_func = 2 * chebwin(PN);          % Window function for Doppler
+
+R_max = NTS * c0 / (2 * BW);                    % Maximum theoretical range for the system in m
+dist_per_bin = R_max / range_fft_size;          % Resolution of every range bin in m
+array_bin_range = (0:range_fft_size-1) * dist_per_bin; % Vector of Range in m
+
+fD_max = 1 / (2 * PRT);                         % Maximum theoretical calue of the Doppler
+fD_per_bin = fD_max / (Doppler_fft_size/2);     % Value of doppler resolution per bin
+array_bin_fD = ((1:Doppler_fft_size) - Doppler_fft_size/2 - 1) * -fD_per_bin * Hz_to_mps_constant; % Vector of speed in m/s
+
+%% Initialize Structures & Data
+target_measurements.strength = zeros(max_num_targets,frame_count);
+target_measurements.range    = zeros(max_num_targets,frame_count);
+target_measurements.speed    = zeros(max_num_targets,frame_count);
+target_measurements.angle    = zeros(max_num_targets,frame_count);
+
+range_tx1rx1_max = zeros(range_fft_size,1);
+
+range_tx1rx1_complete = zeros(range_fft_size,PN,frame_count);
+range_tx1rx2_complete = zeros(range_fft_size,PN,frame_count);
+
+%% ADC Calibration Data
+N_cal = length(calib_data) / (2 * num_Rx_antennas);
+
+dec_idx = N_cal / NTS;
+
+calib_i1 = calib_data(1:dec_idx:N_cal);
+calib_q1 = calib_data(N_cal+1:dec_idx:2*N_cal);
+
+calib_i2 = calib_data(2*N_cal+1:dec_idx:3*N_cal);
+calib_q2 = calib_data(3*N_cal+1:dec_idx:4*N_cal);
+
+calib_rx1 = (calib_i1 + j * calib_q1).';
+calib_rx2 = (calib_i2 + j * calib_q2).';
+
+%%% Manual calibration regarding the measurement scenario
+matrix_raw_data = frame(1).Chirp;
+calib_rx1 = mean(matrix_raw_data(:,:,1),2);
+calib_rx2 = mean(matrix_raw_data(:,:,2),2);
+
+%% Process Frames
+for fr_idx = 1:frame_count % Loop over all data frames, while the output window is still open
+    
+    matrix_raw_data = frame(fr_idx).Chirp; % Raw data for the frame being processed
+    
+    %% Antenna 1 & 2 Fast Time Processing
+    %--------------------------- RX1 ----------------------------
+    matrix_tx1rx1 = matrix_raw_data(:,:,1);   % data of first Rx antenna, first Rx antenna
+    
+    matrix_tx1rx1 = (matrix_tx1rx1 - repmat(calib_rx1,1,PN)).*IF_scale;
+    
+    matrix_tx1rx1 = bsxfun(@minus, matrix_tx1rx1, mean(matrix_tx1rx1)); % Mean removal across range for RX1
+    
+    range_tx1rx1 = fft(matrix_tx1rx1.*repmat(range_window_func,1,PN),range_fft_size,1); % Windowing across range and range FFT for RX1
+    % Please note: Since human target detection at far distances is barely
+    % feasible, the computation of the FFT in the firmware is limited  to
+    % the first half of the spectrum to save memory (also for RX2).
+    
+    range_tx1rx1_complete(:,:,fr_idx) = range_tx1rx1; % Save Range FFT for RX1 for every Frame
+    
+    %--------------------------- RX2 ----------------------------
+    matrix_tx1rx2 = matrix_raw_data(:,:,2);         %data of second Rx antenna, first Tx antenna
+    
+    matrix_tx1rx2 = (matrix_tx1rx2 - repmat(calib_rx2,1,PN)).*IF_scale;
+    
+    matrix_tx1rx2 = bsxfun(@minus, matrix_tx1rx2, mean(matrix_tx1rx2)); % Mean removal across Range for Rx2
+    
+    range_tx1rx2 = fft(matrix_tx1rx2.*repmat(range_window_func,1,PN),range_fft_size,1); % Windowing across range and range FFT
+    
+    range_tx1rx2_complete(:,:,fr_idx) = range_tx1rx2; % Save range FFT for RX1 for every Frame
+    
+    %% Range Target Detection
+    % Detect the targets in range by applying contant amplitude threshold over range
+    
+    range_tx1rx1_max = abs(max(range_tx1rx1,[],2)); % Data integration of range FFT over the chirps for target range detection
+    
+    [tgt_range_idx, tgt_range_mag] = f_search_peak(range_tx1rx1_max, length(range_tx1rx1_max), range_threshold, max_num_targets, min_distance, max_distance, dist_per_bin);
+    
+    num_of_targets = length(tgt_range_idx);
+    
+    %% Antenna 1 & 2 Slow Time Processing
+    %--------------------------- RX1 ----------------------------
+    range_Doppler_tx1rx1 = zeros(range_fft_size, Doppler_fft_size);
+    
+    rx1_doppler_mean = mean(range_tx1rx1(tgt_range_idx,:),2); % Compute mean across doppler
+    
+    range_tx1rx1(tgt_range_idx,:) = range_tx1rx1(tgt_range_idx,:) - rx1_doppler_mean(1:num_of_targets); % Mean removal across Doppler
+    
+    range_Doppler_tx1rx1(tgt_range_idx,:) = fftshift(fft(range_tx1rx1(tgt_range_idx,:).*repmat(doppler_window_func.',num_of_targets,1),Doppler_fft_size,2),2); % Windowing across Doppler and Doppler FFT
+    
+    Rx_spectrum(:,:,1) = range_Doppler_tx1rx1; % Range Doppler spectrum
+    
+    %--------------------------- RX2 ----------------------------
+    range_Doppler_tx1rx2 = zeros(range_fft_size, Doppler_fft_size);
+    
+    rx2_doppler_mean = mean(range_tx1rx2(tgt_range_idx,:),2); % Compute mean across Doppler
+    
+    range_tx1rx2(tgt_range_idx,:) = range_tx1rx2(tgt_range_idx,:) - rx2_doppler_mean(1:num_of_targets);% Mean removal across Doppler
+    
+    range_Doppler_tx1rx2(tgt_range_idx,:) = fftshift(fft(range_tx1rx2(tgt_range_idx,:).*repmat(doppler_window_func.',num_of_targets,1),Doppler_fft_size,2),2);% Windowing across Doppler and Doppler FFT
+    
+    Rx_spectrum(:,:,2) = range_Doppler_tx1rx2;  % Range Doppler spectrum
+    
+    %% Extraction of Indices from Range-Doppler Map
+    tgt_doppler_idx = zeros(1,num_of_targets);
+    
+    z1 =  zeros(1,num_of_targets);
+    z2 =  zeros(1,num_of_targets);
+    
+    for j = 1:num_of_targets
+        [val, doppler_idx] = max(abs(range_Doppler_tx1rx1(tgt_range_idx(j), :)));
+        % Consider the value of the range Doppler map for the two receivers for targets with non
+        % zero speed to compute angle of arrival.
+        % For zero Doppler (targets with zero speed) calculate mean
+        % over Doppler to compute angle of arrival. Index 17 corresponds to zero Doppler
+        if (val >= Doppler_threshold && doppler_idx ~= (Doppler_fft_size / 2 + 1))
+            tgt_doppler_idx(j) = doppler_idx;
+            
+            z1(j) = Rx_spectrum(tgt_range_idx(j),tgt_doppler_idx(j),1);
+            z2(j) = Rx_spectrum(tgt_range_idx(j),tgt_doppler_idx(j),2);
+        else
+            tgt_doppler_idx(j) = Doppler_fft_size / 2 + 1;
+            
+            z1(j) = rx1_doppler_mean(j);
+            z2(j) = rx2_doppler_mean(j);
+        end
+    end
+    
+    %%  Measurement Update
+    if (num_of_targets > 0)
+        for j = 1:num_of_targets
+            target_measurements.strength(fr_idx,j) = tgt_range_mag(j);
+            target_measurements.range(   fr_idx,j) = (tgt_range_idx(j) - 1) * dist_per_bin;
+            target_measurements.speed(   fr_idx,j) = (tgt_doppler_idx(j)- Doppler_fft_size/2 - 1) * -fD_per_bin * Hz_to_mps_constant;
+            target_measurements.angle(   fr_idx,j) = f_estimate_angle(z1(j), z2(j)) + angle_offset;
+        end
+    end
+end
+
+%% Visualization
+range_tx1rx1_max_abs = squeeze(abs(max(range_tx1rx1_complete,[],2)));
+range_tx1rx2_max_abs = squeeze(abs(max(range_tx1rx2_complete,[],2)));
+
+%%% Plot range FFT amplitude heatmap
+% This figure illustrates the distance information of the target(s) over
+% all frames within the pre-defined minimum and maximum ranges. The
+% brigther the color of a range FFT bin, the higher the range FFT amplitude
+% in this bin. The upper and lower subplot shows the information of Rx1 and
+% Rx2, respectively. Information on the exemplary data set is given at the
+% bottom of this file.
+figure;
+
+ax1 = subplot(2,1,1);
+imagesc(1:frame_count,array_bin_range,range_tx1rx1_max_abs);
+title('Range FFT Amplitude Heatmap for RX1');
+xlabel('Frames');
+ylabel('Range (m)');
+set(gca,'YDir','normal');
+ylim([min_distance, max_distance]);
+
+ax2 = subplot(2,1,2);
+imagesc(1:frame_count,array_bin_range,range_tx1rx2_max_abs);
+title('Range FFT Amplitude Heatmap for RX2');
+xlabel('Frames');
+ylabel('Range (m)');
+set(gca,'YDir','normal');
+ylim([min_distance, max_distance]);
+
+linkaxes([ax1,ax2],'xy')
+
+%%% Plot the target detection results (amplitude, range, speed, angle)
+% This figure illustrates the target information in four subplots:
+%    1) Range FFT amplitude depicts the signal strength of the reflected
+%       wave from the target and is dependent on the RCS and the distance
+%       of the target. The larger the RCS and the smaller the distance to
+%       the antenna, the higher the FFT amplitude.
+%       NOTE: A target is only detected if its amplitude is larger than
+%       the range_threshold. Otherwise, the FFT amplitude is set to zero.
+%    2) Range information of the target. Targets are detected only within
+%       min_distance and max_distance.
+%    3) Speed/velocity of the target. Positive value for an approaching
+%       target, negative value for a departing target.
+%       NOTE: If the maximum Doppler FFT amplitude is below the
+%       Doppler_threshold, the speed is set to zero. This does not
+%       influence the target detection, but can be used in tracking
+%       algorithms to extinguish static targets.
+%    4) Angle of the target. Positive value if the target is on the left
+%       side, negative value if the target is on the right side with respect 
+%       to the radar.
+figure;
+leg = [];
+
+for i = 1:max_num_targets
+    leg = [leg; 'Target ', num2str(i)];
+    
+    subplot(4,1,1);
+    hold on;
+    plot(target_measurements.strength(:,i));
+    
+    subplot(4,1,2);
+    hold on;
+    plot(target_measurements.range(:,i));
+    
+    subplot(4,1,3);
+    hold on;
+    plot(target_measurements.speed(:,i));
+    
+    subplot(4,1,4);
+    hold on;
+    plot(target_measurements.angle(:,i));
+end
+
+ax1 = subplot(4,1,1);
+plot([0,frame_count],[range_threshold,range_threshold],'k');
+title ('FFT Amplitude');
+xlabel('Frames');
+ylabel('Amplitude');
+leg_range = [leg; 'Range TH'];
+legend(leg_range,'Location','EastOutside');
+
+ax2 = subplot(4,1,2);
+title ('Range');
+xlabel('Frames');
+ylabel('Range (m)');
+legend(leg,'Location','EastOutside');
+
+ax3 = subplot(4,1,3);
+title ('Speed');
+xlabel('Frames')
+ylabel('Speed (m/s)');
+legend(leg,'Location','EastOutside');
+
+ax4 = subplot(4,1,4);
+title ('Angle');
+xlabel('Frames')
+ylabel('Angle (°)');
+legend(leg,'Location','EastOutside');
+
+linkaxes([ax1,ax2,ax3,ax4],'x')
+
+%%% Information on the exemplary data sets
+% Description of the data set "data_P2G_1person_legacy" for all frames:
+%    0 -  100: tangentially movement from right to left at 3m
+%  100 -  190: tangentially movement from left to right at 5m
+%  190 -  300: tangentially movement from right to left at 8m
+%  300 -  400: azimuth movement from left to right at 3m for zero degree
+%  400 -  500: azimuth movement from right to left at 5m for zero degree
+%  500 -  600: azimuth movement from left to right at 8m for zero degree
+%  700 - 1175: repeated approaching from the right side to the left side
+%              and departing the same way back for different ranges.
+% 1175 - 1550: departing and approaching at approximately zero degree
+%
+% Description of the data set "data_P2G_1person" for all frames:
+%    0 -  100: tangentially movement from right to left at 3.0m
+%  100 -  200: tangentially movement from left to right at 5.5m
+%  200 -  300: tangentially movement from right to left at 8.5m
+%  300 -  400: azimuth movement from left to right at 3.0m for zero degree
+%  400 -  500: azimuth movement from right to left at 5.5m for zero degree
+%  500 -  560: azimuth movement from left to right at 8.5m for zero degree
+%  560 -  980: repeated approaching from the right side to the left side
+%              and departing the same way back for different ranges.
+%  980 - 1480: repeated approaching and departing at approximately zero
+%              degree for different ranges
+%
+% NOTE on the range FFT amplitude:
+% Due to positive and negative interferences of multi-path reflections and
+% specle, the amplitude is fluctuating for human targets. In worst case,
+% the amplitude is below the range_threshold in some frames and the target
+% sporadically disappears. This can be prevented by further signal
+% processing like tracking.
+%
+% NOTE on the speed data:
+% Since the obervation time is only 8ms per frame,only an instant is shown.
+% For tangentially movements, when the target is step-by-step approaching
+% and departing, the sign of the velocity is fluctuating. Even for radial
+% movements, specle can induce a wrong direction of movement. 
 
