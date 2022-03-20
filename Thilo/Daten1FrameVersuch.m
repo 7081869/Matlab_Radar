@@ -177,17 +177,17 @@ calib_rx2 = (calib_i2 + j * calib_q2).';
 
 %%% Manual calibration regarding the measurement scenario
 matrix_raw_data = frame;
-calib_rx1 = mean(matrix_raw_data(:,1),2);
-calib_rx2 = mean(matrix_raw_data(:,2),2);
+calib_rx1 = mean(matrix_raw_data(:,:,1),2);
+calib_rx2 = mean(matrix_raw_data(:,:,2),2);
 
 %% Process Frames
 for fr_idx = 1:frame_count % Loop over all data frames, while the output window is still open
     
-    matrix_raw_data = frame(fr_idx); % Raw data for the frame being processed
+    matrix_raw_data = frame(:,fr_idx,:); % Raw data for the frame being processed
     
     %% Antenna 1 & 2 Fast Time Processing
     %--------------------------- RX1 ----------------------------
-    matrix_tx1rx1 = matrix_raw_data(:,1);   % data of first Rx antenna, first Rx antenna
+    matrix_tx1rx1 = matrix_raw_data(:,:,1);   % data of first Rx antenna, first Rx antenna
     
     matrix_tx1rx1 = (matrix_tx1rx1 - repmat(calib_rx1,1,PN)).*IF_scale;
     
@@ -198,10 +198,10 @@ for fr_idx = 1:frame_count % Loop over all data frames, while the output window 
     % feasible, the computation of the FFT in the firmware is limited  to
     % the first half of the spectrum to save memory (also for RX2).
     
-    range_tx1rx1_complete(:,fr_idx) = range_tx1rx1; % Save Range FFT for RX1 for every Frame
+    range_tx1rx1_complete(:,:,fr_idx) = range_tx1rx1; % Save Range FFT for RX1 for every Frame
     
     %--------------------------- RX2 ----------------------------
-    matrix_tx1rx2 = matrix_raw_data(:,2);         %data of second Rx antenna, first Tx antenna
+    matrix_tx1rx2 = matrix_raw_data(:,:,2);         %data of second Rx antenna, first Tx antenna
     
     matrix_tx1rx2 = (matrix_tx1rx2 - repmat(calib_rx2,1,PN)).*IF_scale;
     
@@ -209,7 +209,7 @@ for fr_idx = 1:frame_count % Loop over all data frames, while the output window 
     
     range_tx1rx2 = fft(matrix_tx1rx2.*repmat(range_window_func,1,PN),range_fft_size,1); % Windowing across range and range FFT
     
-    range_tx1rx2_complete(:,fr_idx) = range_tx1rx2; % Save range FFT for RX1 for every Frame
+    range_tx1rx2_complete(:,:,fr_idx) = range_tx1rx2; % Save range FFT for RX1 for every Frame
     
     %% Range Target Detection
     % Detect the targets in range by applying contant amplitude threshold over range
