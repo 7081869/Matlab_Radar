@@ -182,14 +182,12 @@ calib_rx2 = mean(matrix_raw_data(:,:,2),2);
 
 %% Process Frames
 %for fr_idx = 1:frame_count % Loop over all data frames, while the output window is still open
-    fr_idx = 1;
-    matrix_raw_data = frame; % (:,:,fr_idx); % Raw data for the frame being processed
+    
+    matrix_raw_data = frame(:,:,fr_idx); % Raw data for the frame being processed
     
     %% Antenna 1 & 2 Fast Time Processing
     %--------------------------- RX1 ----------------------------
     matrix_tx1rx1 = matrix_raw_data(:,1,:);   % data of first Rx antenna, first Rx antenna
-    
-    matrix_tx1rx1 = squeeze(matrix_tx1rx1);
     
     matrix_tx1rx1 = (matrix_tx1rx1 - repmat(calib_rx1,1,PN)).*IF_scale;
     
@@ -204,8 +202,6 @@ calib_rx2 = mean(matrix_raw_data(:,:,2),2);
     
     %--------------------------- RX2 ----------------------------
     matrix_tx1rx2 = matrix_raw_data(:,2,:);         %data of second Rx antenna, first Tx antenna
-    
-    matrix_tx1rx2 = squeeze(matrix_tx1rx2);
     
     matrix_tx1rx2 = (matrix_tx1rx2 - repmat(calib_rx2,1,PN)).*IF_scale;
     
