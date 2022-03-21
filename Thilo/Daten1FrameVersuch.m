@@ -100,13 +100,13 @@ up_chirp_duration = 300e-6; % Standard Wert, ‰nderbar /ablesbar in der config.h 
 PRT = up_chirp_duration + down_chirp_duration + chirp_to_chirp_delay; % Pulse repetition time : Delay between the start of two chirps
 
 % Bandwidth
-BW = (oRS.oEPRadarFMCW.upper_frequency_kHz - oRS.oEPRadarFMCW.lower_frequency_kHz) * 1e3;
+BW = (double(oRS.oEPRadarFMCW.upper_frequency_kHz) - double(oRS.oEPRadarFMCW.lower_frequency_kHz)) * 1e3;
 
 num_Tx_antennas = 1; % Number of Tx antennas, constant
 num_Rx_antennas = 2; % Number of Rx antennas, constant
 
 % Carrier frequency
-fC = (str2double(upper_frequency) + str2double(lower_frequency)) / 2 * 1e3;
+fC = (upper_frequency + lower_frequency) / 2 * 1e3;
 
 % Number of ADC samples per chirp
 NTS = num_samples_per_chirp;
@@ -143,7 +143,9 @@ range_window_func = 2 * blackman(NTS);          % Window function for Range
 doppler_window_func = 2 * chebwin(PN);          % Window function for Doppler
 
 R_max = NTS * c0 / (2 * BW);                    % Maximum theoretical range for the system in m
-dist_per_bin = R_max / range_fft_size;          % Resolution of every range bin in m
+Chosen_distance = 8;
+%dist_per_bin = R_max / range_fft_size;          % Resolution of every range bin in m
+chosen
 array_bin_range = (0:range_fft_size-1) * double(dist_per_bin); % Vector of Range in m
 
 fD_max = 1 / (2 * PRT);                         % Maximum theoretical calue of the Doppler
@@ -189,11 +191,12 @@ calib_rx2 = mean(matrix_raw_data(:,:,2),2);
     %--------------------------- RX1 ----------------------------
     matrix_tx1rx1 = matrix_raw_data(:,1,:);   % data of first Rx antenna, first Rx antenna
     
-    matrix_tx1rx1 = squeeze(matrix_tx1rx1);
+    matrix_tx1rx1 = squeeze(matrix_tx1rx1); % Umwandlung der Matrix von 128x1x16 zu 128x16
     
-    matrix_tx1rx1 = (matrix_tx1rx1 - repmat(calib_rx1,1,PN)).*IF_scale;
+    matrix_tx1rx1 = (matrix_tx1rx1 - repmat(calib_rx1,1,PN)).*IF_scale; % Anwendung der Calibrierungsdaten und Skalierung mit ZF Skala
     
     matrix_tx1rx1 = bsxfun(@minus, matrix_tx1rx1, mean(matrix_tx1rx1)); % Mean removal across range for RX1
+    %Gemeint ist die Entfernung des Durchschnitts der Matrix (Mutmaﬂung: Nur die Ausreiﬂer sind wichtig zum Interpretieren (hohe Amplituden) 
     
     range_tx1rx1 = fft(matrix_tx1rx1.*repmat(range_window_func,1,PN),range_fft_size,1); % Windowing across range and range FFT for RX1
     % Please note: Since human target detection at far distances is barely
@@ -219,10 +222,13 @@ calib_rx2 = mean(matrix_raw_data(:,:,2),2);
     % Detect the targets in range by applying contant amplitude threshold over range
     
     range_tx1rx1_max = abs(max(range_tx1rx1,[],2)); % Data integration of range FFT over the chirps for target range detection
+    % Sucht aus jeder Reihe der Matrix den Maximalwert der komplexen Zahl
+    % und speichert diesen im Betrag in einem Spaltenvektor
     
     [tgt_range_idx, tgt_range_mag] = f_search_peak(range_tx1rx1_max, length(range_tx1rx1_max), range_threshold, max_num_targets, min_distance, max_distance, dist_per_bin);
     
     num_of_targets = length(tgt_range_idx);
+    
     
     %% Antenna 1 & 2 Slow Time Processing
     %--------------------------- RX1 ----------------------------
@@ -336,7 +342,7 @@ linkaxes([ax1,ax2],'xy')
 figure;
 leg = [];
 
-for i = 1:max_num_targets
+for i = 1:num_of_targets
     leg = [leg; 'Target ', num2str(i)];
     
     subplot(4,1,1);
@@ -421,3 +427,14 @@ linkaxes([ax1,ax2,ax3,ax4],'x')
 % and departing, the sign of the velocity is fluctuating. Even for radial
 % movements, specle can induce a wrong direction of movement. 
 
+for i = 1:num_of_targets
+    
+    fprintf("Target %d\n", i);
+    strength = (target_measurements.strength(:,i))
+    
+    range = (target_measurements.range(:,i))
+    
+   speed = (target_measurements.speed(:,i))
+    
+   angle = (target_measurements.angle(:,i))
+end

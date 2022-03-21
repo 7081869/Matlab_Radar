@@ -1,5 +1,10 @@
 function [peak_idx, peak_val] = f_search_peak(fft_spectrum, search_length, threshold, max_target_count, Min_Distance, Max_Distance, DistPerBin)
+  
+% Innerhalb von 5 Werten wird gesucht ob der mittlerer ein rel. Maximum ist, wenn ja, muss er über Threshold sein und innerhalb der Range hier 0.9 - 15 m
+% es werden so viele Maxima gespeichert wie max_target_count groß ist,
+% sonst wird die Funktion beendet
     
+
     peak_cnt = 0;
     
     peak_val = 0;
