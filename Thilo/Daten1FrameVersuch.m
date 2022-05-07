@@ -86,8 +86,15 @@ oRS.oEPRadarBase.num_chirps_per_frame = num_chirps_per_frame;
 oRS.oEPRadarBase.num_samples_per_chirp = num_samples_per_chirp;       % up to 4095 for single RX channel
 oRS.oEPRadarBase.rx_mask = bin2dec('0011');         % enable RX1 & RX2 antenna
 oRS.oEPRadarFMCW.direction = 'Up Only';
-
+%% Initialisierung Ausgabewerte
+    strength = zeros(100000, 3);
+    range = zeros(100000, 3);
+    speed = zeros(100000, 3);
+    angle = zeros(100000, 3);
+    counter=0;
+    %%
 while(1)
+    counter=counter+1;
     % 3. Trigger radar chirp, get the raw data and plot it
     [mxRawData, sInfo] = oRS.oEPRadarBase.get_frame_data; % get raw data
     frame = mxRawData;
@@ -129,9 +136,9 @@ while(1)
     Doppler_threshold = 50; % Amplitude threshold to find peaks in Doppler FFT
 
     min_distance =  0.9; % Minimum distance of the target from the radar (recommended to be at least 0.9 m)
-    max_distance = 15.0; % Maximum distance of the target from the radar (recommended to be maximum 25.0 m)
+    max_distance = 7.0; % Maximum distance of the target from the radar (recommended to be maximum 25.0 m)
 
-    max_num_targets = 5; % Maximum number of targets that can be detected
+    max_num_targets = 3; % Maximum number of targets that can be detected
 
     %% Calculate Derived Parameters
     lambda = c0 / fC;
@@ -301,25 +308,26 @@ while(1)
     % in this bin. The upper and lower subplot shows the information of Rx1 and
     % Rx2, respectively. Information on the exemplary data set is given at the
     % bottom of this file.
-    figure;
-
-    ax1 = subplot(2,1,1);
-    imagesc(1:frame_count,array_bin_range,range_tx1rx1_max_abs);
+    
+    %figure;
+    
+%     ax1 = subplot(2,1,1);
+%     imagesc(1:frame_count,array_bin_range,range_tx1rx1_max_abs);
     title('Range FFT Amplitude Heatmap for RX1');
     xlabel('Frames');
     ylabel('Range (m)');
     set(gca,'YDir','normal');
     ylim([min_distance, max_distance]);
 
-    ax2 = subplot(2,1,2);
-    imagesc(1:frame_count,array_bin_range,range_tx1rx2_max_abs);
+%     ax2 = subplot(2,1,2);
+%     imagesc(1:frame_count,array_bin_range,range_tx1rx2_max_abs);
     title('Range FFT Amplitude Heatmap for RX2');
     xlabel('Frames');
     ylabel('Range (m)');
     set(gca,'YDir','normal');
     ylim([min_distance, max_distance]);
-
-    linkaxes([ax1,ax2],'xy')
+    
+%       linkaxes([ax1,ax2],'xy')
 
     %%% Plot the target detection results (amplitude, range, speed, angle)
     % This figure illustrates the target information in four subplots:
@@ -340,56 +348,57 @@ while(1)
     %    4) Angle of the target. Positive value if the target is on the left
     %       side, negative value if the target is on the right side with respect 
     %       to the radar.
-    figure;
-    leg = [];
-
-    for i = 1:num_of_targets
-        leg = [leg; 'Target ', num2str(i)];
-
-        subplot(4,1,1);
-        hold on;
-        plot(target_measurements.strength(:,i));
-
-        subplot(4,1,2);
-        hold on;
-        plot(target_measurements.range(:,i));
-
-        subplot(4,1,3);
-        hold on;
-        plot(target_measurements.speed(:,i));
-
-        subplot(4,1,4);
-        hold on;
-        plot(target_measurements.angle(:,i));
-    end
-
-    ax1 = subplot(4,1,1);
-    plot([0,frame_count],[range_threshold,range_threshold],'k');
-    title ('FFT Amplitude');
-    xlabel('Frames');
-    ylabel('Amplitude');
-    leg_range = [leg; 'Range TH'];
-    legend(leg_range,'Location','EastOutside');
-
-    ax2 = subplot(4,1,2);
-    title ('Range');
-    xlabel('Frames');
-    ylabel('Range (m)');
-    legend(leg,'Location','EastOutside');
-
-    ax3 = subplot(4,1,3);
-    title ('Speed');
-    xlabel('Frames')
-    ylabel('Speed (m/s)');
-    legend(leg,'Location','EastOutside');
-
-    ax4 = subplot(4,1,4);
-    title ('Angle');
-    xlabel('Frames')
-    ylabel('Angle (°)');
-    legend(leg,'Location','EastOutside');
-
-    linkaxes([ax1,ax2,ax3,ax4],'x')
+  
+    
+%     leg = [];
+% 
+%     for i = 1:num_of_targets
+%         leg = [leg; 'Target ', num2str(i)];
+% 
+%         subplot(4,1,1);
+%         hold on;
+%         plot(target_measurements.strength(:,i));
+% 
+%         subplot(4,1,2);
+%         hold on;
+%         plot(target_measurements.range(:,i));
+% 
+%         subplot(4,1,3);
+%         hold on;
+%         plot(target_measurements.speed(:,i));
+% 
+%         subplot(4,1,4);
+%         hold on;
+%         plot(target_measurements.angle(:,i));
+%     end
+% 
+%     ax1 = subplot(4,1,1);
+%     plot([0,frame_count],[range_threshold,range_threshold],'k');
+%     title ('FFT Amplitude');
+%     xlabel('Frames');
+%     ylabel('Amplitude');
+%     leg_range = [leg; 'Range TH'];
+%     legend(leg_range,'Location','EastOutside');
+% 
+%     ax2 = subplot(4,1,2);
+%     title ('Range');
+%     xlabel('Frames');
+%     ylabel('Range (m)');
+%     legend(leg,'Location','EastOutside');
+% 
+%     ax3 = subplot(4,1,3);
+%     title ('Speed');
+%     xlabel('Frames')
+%     ylabel('Speed (m/s)');
+%     legend(leg,'Location','EastOutside');
+% 
+%     ax4 = subplot(4,1,4);
+%     title ('Angle');
+%     xlabel('Frames')
+%     ylabel('Angle (°)');
+%     legend(leg,'Location','EastOutside');
+% 
+%     linkaxes([ax1,ax2,ax3,ax4],'x')
 
     %%% Information on the exemplary data sets
     % Description of the data set "data_P2G_1person_legacy" for all frames:
@@ -427,16 +436,58 @@ while(1)
     % For tangentially movements, when the target is step-by-step approaching
     % and departing, the sign of the velocity is fluctuating. Even for radial
     % movements, specle can induce a wrong direction of movement. 
+    
+        
 
+    leg = [];
     for i = 1:num_of_targets
+        
+       leg = [leg; 'Target ', num2str(i)];
+        % fprintf("Target %d\n", i);
+       strength(counter, i) = (target_measurements.strength(1,i));
+       
+       range(counter, i) = (target_measurements.range(1,i));
 
-        fprintf("Target %d\n", i);
-        strength = (target_measurements.strength(:,i))
+       speed(counter, i) = (target_measurements.speed(1,i));
 
-       range = (target_measurements.range(:,i))
-
-       speed = (target_measurements.speed(:,i))
-
-       angle = (target_measurements.angle(:,i))
+       angle(counter, i) = (target_measurements.angle(1,i));
     end
+    strengthOut=strength(1:counter,:);
+    rangeOut=range(1:counter,:);
+    speedOut=speed(1:counter,:);
+    angleOut=angle(1:counter,:);
+    
+    set(gcf,'color','w'); % Set Background color white
+%    
+    z='.';
+    subplot(4,1,1);
+    hold on;
+    plot((1:counter),strengthOut(:,1),z,(1:counter),strengthOut(:,2),z,(1:counter),strengthOut(:,3),z)
+     title ('FFT Amplitude');
+     xlabel('Frames')
+     ylabel('Amplitude');
+     leg_range = [leg; 'Range TH'];
+     legend(leg_range,'Location','EastOutside');
+    subplot(4,1,2);
+    hold on;
+    plot((1:counter),rangeOut(:,1),z,(1:counter),rangeOut(:,2),z,(1:counter),rangeOut(:,3),z)
+    title ('Range');
+    xlabel('Frames')
+    ylabel('Range / m');
+    legend(leg,'Location','EastOutside');
+    subplot(4,1,3);
+    hold on;    
+    plot((1:counter),speedOut(:,1),z,(1:counter),speedOut(:,2),z,(1:counter),speedOut(:,3),z)
+    title ('Geschwindigkeit');
+    xlabel('Frames')
+    ylabel('Geschwindigkeit in m/s');
+    legend(leg,'Location','EastOutside');
+    subplot(4,1,4);
+    hold on;
+    plot((1:counter),angleOut(:,1),z,(1:counter),angleOut(:,2),z,(1:counter),angleOut(:,3),z)
+    title ('Winkel');
+    xlabel('Frames')
+    ylabel('Winkel in °');
+    legend(leg,'Location','EastOutside');
+    pause(0.4)
 end
