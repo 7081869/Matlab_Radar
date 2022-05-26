@@ -94,10 +94,7 @@ oRS.oEPRadarFMCW.direction = 'Up Only';
     counter=0;
 %% Andere Konstanten und Initialisierungen, Performance verbessern
     %% Extract FMCW chirp configuration from device data
-    % Pulse repetition time
-    up_chirp_duration = 300e-6; % Standard Wert, ?nderbar /ablesbar in der config.h unter Dave Project/P2G_FMCW
-
-    PRT = up_chirp_duration + down_chirp_duration + chirp_to_chirp_delay; % Pulse repetition time : Delay between the start of two chirps
+   
 
     % Bandwidth
     BW = (double(oRS.oEPRadarFMCW.upper_frequency_kHz) - double(oRS.oEPRadarFMCW.lower_frequency_kHz)) * 1e3;
@@ -131,7 +128,20 @@ oRS.oEPRadarFMCW.direction = 'Up Only';
 
     max_num_targets = 3; % Maximum number of targets that can be detected   
  
-%% Calculate Derived Parameters
+%%
+while(1)
+    counter=counter+1; %Counter for graphs at the end
+
+    % 3. Trigger radar chirp, get the raw data and plot it
+    [frame, sInfo] = oRS.oEPRadarBase.get_frame_data; % get raw data
+    frame_count=1;
+    calib_data= oRS.oEPCalibration.get_calibration_data';
+
+
+
+
+
+    %% Calculate Derived Parameters
     lambda = c0 / fC;
 
     Hz_to_mps_constant = lambda / 2;                % Conversion factor from frequency to speed in m/s
@@ -150,9 +160,8 @@ oRS.oEPRadarFMCW.direction = 'Up Only';
     fD_max = 1 / (2 * PRT);                         % Maximum theoretical calue of the Doppler
     fD_per_bin = fD_max / (Doppler_fft_size/2);     % Value of doppler resolution per bin
     array_bin_fD = ((1:Doppler_fft_size) - Doppler_fft_size/2 - 1) * -fD_per_bin * Hz_to_mps_constant; % Vector of speed in m/s
- %% Initialize Structures & Data
-    frame_count=1;
-    
+
+    %% Initialize Structures & Data
     target_measurements.strength = zeros(max_num_targets,frame_count);
     target_measurements.range    = zeros(max_num_targets,frame_count);
     target_measurements.speed    = zeros(max_num_targets,frame_count);
@@ -162,10 +171,8 @@ oRS.oEPRadarFMCW.direction = 'Up Only';
 
     range_tx1rx1_complete = zeros(range_fft_size,PN,frame_count);
     range_tx1rx2_complete = zeros(range_fft_size,PN,frame_count);
-    
 
     %% ADC Calibration Data
-    calib_data= oRS.oEPCalibration.get_calibration_data';
     N_cal = length(calib_data) / (2 * num_Rx_antennas);
 
     dec_idx = N_cal / NTS;
@@ -178,13 +185,6 @@ oRS.oEPRadarFMCW.direction = 'Up Only';
 
     calib_rx1 = (calib_i1 + j * calib_q1).';
     calib_rx2 = (calib_i2 + j * calib_q2).';
-%%
-while(1)
-    counter=counter+1; %Counter for graphs at the end
-
-    % 3. Trigger radar chirp, get the raw data and plot it
-    [frame, sInfo] = oRS.oEPRadarBase.get_frame_data; % get raw data
-    
 
     %%% Manual calibration regarding the measurement scenario
     matrix_raw_data = frame;
@@ -490,5 +490,5 @@ while(1)
     xlabel('Frames')
     ylabel('Winkel in °');
     legend(leg,'Location','EastOutside');
-    pause(0.1)
+    pause(0.4)
 end
