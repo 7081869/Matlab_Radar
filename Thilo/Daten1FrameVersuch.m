@@ -315,19 +315,19 @@ while(1)
     
 %     ax1 = subplot(2,1,1);
 %     imagesc(1:frame_count,array_bin_range,range_tx1rx1_max_abs);
-    title('Range FFT Amplitude Heatmap for RX1');
-    xlabel('Frames');
-    ylabel('Range (m)');
-    set(gca,'YDir','normal');
-    ylim([min_distance, max_distance]);
-
-%     ax2 = subplot(2,1,2);
-%     imagesc(1:frame_count,array_bin_range,range_tx1rx2_max_abs);
-    title('Range FFT Amplitude Heatmap for RX2');
-    xlabel('Frames');
-    ylabel('Range (m)');
-    set(gca,'YDir','normal');
-    ylim([min_distance, max_distance]);
+%     title('Range FFT Amplitude Heatmap for RX1');
+%     xlabel('Frames');
+%     ylabel('Range (m)');
+%     set(gca,'YDir','normal');
+%     ylim([min_distance, max_distance]);
+% 
+% %     ax2 = subplot(2,1,2);
+% %     imagesc(1:frame_count,array_bin_range,range_tx1rx2_max_abs);
+%     title('Range FFT Amplitude Heatmap for RX2');
+%     xlabel('Frames');
+%     ylabel('Range (m)');
+%     set(gca,'YDir','normal');
+%     ylim([min_distance, max_distance]);
     
 %       linkaxes([ax1,ax2],'xy')
 
@@ -442,68 +442,91 @@ while(1)
         
 
     leg = [];
-    for i = 1:num_of_targets
+    for i = 1:max_num_targets
         
        leg = [leg; 'Target ', num2str(i)];
         % fprintf("Target %d\n", i);
+       
+        
+           
        if counter<21
-           strength(counter, i) = (target_measurements.strength(1,i));
+           if i > num_of_targets
+               strength(counter, i) = NaN;
 
-           range(counter, i) = (target_measurements.range(1,i));
+               range(counter, i) = NaN;
 
-           speed(counter, i) = (target_measurements.speed(1,i));
+               speed(counter, i) = NaN;
 
-           angle(counter, i) = (target_measurements.angle(1,i));
+               angle(counter, i) = NaN;
+           else    
+               strength(counter, i) = (target_measurements.strength(1,i));
+
+               range(counter, i) = (target_measurements.range(1,i));
+
+               speed(counter, i) = (target_measurements.speed(1,i));
+
+               angle(counter, i) = (target_measurements.angle(1,i));
+           end
        else
            strength(1:19, i)=strength(2:20, i);
            range(1:19, i)=range(2:20, i);
            speed(1:19, i)=speed(2:20, i);
            angle(1:19, i)=angle(2:20, i);
-           
-           strength(20, i) = (target_measurements.strength(1,i));
+           if i > num_of_targets
+               strength(20, i) = NaN;
+               range(20, i) = NaN;
+               speed(20, i) = NaN;
+               angle(20, i) = NaN;
+           else
+               s = (target_measurements.strength(1,i));
+               strength(20, i) = s;
 
-           range(20, i) = (target_measurements.range(1,i));
+               disp('target: ')
+               disp(i)
+               r = (target_measurements.range(1,i))
+               range(20, i) = r;
 
-           speed(20, i) = (target_measurements.speed(1,i));
 
-           angle(20, i) = (target_measurements.angle(1,i));
+               s = (target_measurements.speed(1,i));
+               speed(20, i) = s;
+
+
+               a = (target_measurements.angle(1,i));
+               angle(20, i) = a;
+           end
        end
     end
-
     
     
     
-    set(gcf,'color','w'); % Set Background color white
+    
+%    set(gcf,'color','w'); % Set Background color white
 %    
-    z='.';
-    subplot(4,1,1);
-    hold on;
-    plot((1:20),strength(:,1),z,(1:20),strength(:,2),z,(1:20),strength(:,3),z)
-      title ('FFT Amplitude');
-     xlabel('Frames')
-     ylabel('Amplitude');
-     leg_range = [leg; 'Range TH'];
-     legend(leg_range,'Location','EastOutside');
-    subplot(4,1,2);
-    hold on;
-    plot((1:20),range(:,1),z,(1:20),range(:,2),z,(1:20),range(:,3),z)
-    title ('Range');
-    xlabel('Frames')
-    ylabel('Range / m');
-    legend(leg,'Location','EastOutside');
-    subplot(4,1,3);
-    hold on;    
-    plot((1:20),speed(:,1),z,(1:20),speed(:,2),z,(1:20),speed(:,3),z)
-    title ('Geschwindigkeit');
-    xlabel('Frames')
-    ylabel('Geschwindigkeit in m/s');
-    legend(leg,'Location','EastOutside');
-    subplot(4,1,4);
-    hold on;
-    plot((1:20),angle(:,1),z,(1:20),angle(:,2),z,(1:20),angle(:,3),z)
-    title ('Winkel');
-    xlabel('Frames')
-    ylabel('Winkel in °');
-    legend(leg,'Location','EastOutside');
-    pause(0.1)
+%    z='.';
+%     figure(1)
+%     plot((1:20),strength(:,1),z,(1:20),strength(:,2),z,(1:20),strength(:,3),z)
+%       title ('FFT Amplitude');
+%      xlabel('Frames')
+%      ylabel('Amplitude');
+%      leg_range = [leg; 'Range TH'];
+%      legend(leg_range,'Location','EastOutside');
+%    figure(2)
+%     plot((1:20),range(:,1),z,(1:20),range(:,2),z,(1:20),range(:,3),z)
+%     title ('Range');
+%     xlabel('Frames')
+%     ylabel('Range / m');
+%     legend(leg,'Location','EastOutside');
+%    figure(3)    
+%     plot((1:20),speed(:,1),z,(1:20),speed(:,2),z,(1:20),speed(:,3),z)
+%     title ('Geschwindigkeit');
+%     xlabel('Frames')
+%     ylabel('Geschwindigkeit in m/s');
+%     legend(leg,'Location','EastOutside');
+%     figure(4)
+%     plot((1:20),angle(:,1),z,(1:20),angle(:,2),z,(1:20),angle(:,3),z)
+%     title ('Winkel');
+%     xlabel('Frames')
+%     ylabel('Winkel in °');
+%     legend(leg,'Location','EastOutside');
+    pause(0.05)
 end
