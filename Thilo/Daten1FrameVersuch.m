@@ -87,10 +87,11 @@ oRS.oEPRadarBase.num_samples_per_chirp = num_samples_per_chirp;       % up to 40
 oRS.oEPRadarBase.rx_mask = bin2dec('0011');         % enable RX1 & RX2 antenna
 oRS.oEPRadarFMCW.direction = 'Up Only';
 %% Initialisierung Ausgabewerte
-    strength = zeros(100000, 3);
-    range = zeros(100000, 3);
-    speed = zeros(100000, 3);
-    angle = zeros(100000, 3);
+    strength = zeros(20, 3);
+    range = zeros(20, 3);
+    speed = zeros(20, 3);
+    angle = zeros(20, 3);
+    
     counter=0;
 %% Andere Konstanten und Initialisierungen, Performance verbessern
     %% Extract FMCW chirp configuration from device data
@@ -445,47 +446,61 @@ while(1)
         
        leg = [leg; 'Target ', num2str(i)];
         % fprintf("Target %d\n", i);
-       strength(counter, i) = (target_measurements.strength(1,i));
-       
-       range(counter, i) = (target_measurements.range(1,i));
+       if counter<21
+           strength(counter, i) = (target_measurements.strength(1,i));
 
-       speed(counter, i) = (target_measurements.speed(1,i));
+           range(counter, i) = (target_measurements.range(1,i));
 
-       angle(counter, i) = (target_measurements.angle(1,i));
+           speed(counter, i) = (target_measurements.speed(1,i));
+
+           angle(counter, i) = (target_measurements.angle(1,i));
+       else
+           strength(1:19, i)=strength(2:20, i);
+           range(1:19, i)=range(2:20, i);
+           speed(1:19, i)=speed(2:20, i);
+           angle(1:19, i)=angle(2:20, i);
+           
+           strength(20, i) = (target_measurements.strength(1,i));
+
+           range(20, i) = (target_measurements.range(1,i));
+
+           speed(20, i) = (target_measurements.speed(1,i));
+
+           angle(20, i) = (target_measurements.angle(1,i));
+       end
     end
-    strengthOut=strength(1:counter,:);
-    rangeOut=range(1:counter,:);
-    speedOut=speed(1:counter,:);
-    angleOut=angle(1:counter,:);
+
+    
+    
     
     set(gcf,'color','w'); % Set Background color white
 %    
     z='.';
     subplot(4,1,1);
     hold on;
-    plot((1:counter),strengthOut(:,1),z,(1:counter),strengthOut(:,2),z,(1:counter),strengthOut(:,3),z)
-     title ('FFT Amplitude');
+    plot((1:20),strength(:,1),z,(1:20),strength(:,2),z,(1:20),strength(:,3),z)
+      title ('FFT Amplitude');
      xlabel('Frames')
      ylabel('Amplitude');
      leg_range = [leg; 'Range TH'];
      legend(leg_range,'Location','EastOutside');
     subplot(4,1,2);
     hold on;
-    plot((1:counter),rangeOut(:,1),z,(1:counter),rangeOut(:,2),z,(1:counter),rangeOut(:,3),z)
+    plot((1:20),range(:,1),z,(1:20),range(:,2),z,(1:20),range(:,3),z)
     title ('Range');
     xlabel('Frames')
     ylabel('Range / m');
     legend(leg,'Location','EastOutside');
     subplot(4,1,3);
     hold on;    
-    plot((1:counter),speedOut(:,1),z,(1:counter),speedOut(:,2),z,(1:counter),speedOut(:,3),z)
+    plot((1:20),speed(:,1),z,(1:20),speed(:,2),z,(1:20),speed(:,3),z)
     title ('Geschwindigkeit');
     xlabel('Frames')
     ylabel('Geschwindigkeit in m/s');
     legend(leg,'Location','EastOutside');
     subplot(4,1,4);
     hold on;
-    plot((1:counter),angleOut(:,1),z,(1:counter),angleOut(:,2),z,(1:counter),angleOut(:,3),z)
+    plot((1:20),angle(:,1),z,(1:20),angle(:,2),z,(1:20),angle(:,3),z)
     title ('Winkel');
     xlabel('Frames')
     ylabel('Winkel in °');
