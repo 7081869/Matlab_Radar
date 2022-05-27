@@ -1,0 +1,6 @@
+%Test
+t=Target;
+t.Werte(1)=3;
+t.Werte(2)=5;
+t.Buildaverage();
+t

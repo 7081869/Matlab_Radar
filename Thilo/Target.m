@@ -13,23 +13,23 @@
 
 %%Klasse Target 
 classdef Target
-    properties
+    properties(Access = public)
         Count
         average
-        Werte = zeros(20, 1)
-        InUse = false
+        Werte = zeros(20, 1);
+        InUse = false;
     end 
-    methods
-        function Buildaverage
+    methods (Access = public)
+        function av = Buildaverage(this)
             count=0;
             Sum=0;
             for i=1:20
-                if Werte(i)~=0
+                if this.Werte(i)~=0
                     count = count +1;
-                    Sum = Sum + Werte(i);
+                    Sum = Sum + this.Werte(i);
                 end
             end
-            average = Sum / count;
+            av = Sum / count;
         end
     end
 end
