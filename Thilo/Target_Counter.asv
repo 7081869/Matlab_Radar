@@ -32,7 +32,6 @@ clear k
 for k = 1:3
 
     %hier Übergabe neue Targets
-    clear i
     for i = 1:Max_RealTargets
         Targets(i) = FTarget;
         Targets(i).range = 1.25*i + k;
@@ -44,7 +43,6 @@ for k = 1:3
 
     %hier abgleich mit alten targets
 
-    clear i
     for i = 1:Max_RealTargets
         
         if k == 1
@@ -67,27 +65,32 @@ for k = 1:3
 
     
      
-    if k <1
+    if k > 1
     for i = 1:Max_RealTargets
-        %Wo ist der minimalste Abstand?
-        minValue = min( min_Difference_Location(:,i),[],2,'omitnan')
-        minIndex = find(min_Difference_Location(:,i) == minValue)
+        
         
         %Zuweisung neue an aktuell Targets, wenn altes Target gelöscht ist
         if isnan(Targets_aktuell(i).range) &&  isnan(Targets_aktuell(i).speed) && isnan(Targets_aktuell(i).angle) && isnan(Targets_aktuell(i).origin)
             Targets_aktuell(i) = Targets(i);
-        end
-        
+        else
+            
+        %Wo ist der minimalste Abstand?
+        minValue = 0;
+        minIndex = 0;
+        minValue = min( min_Difference_Location(:,i),[],2,'omitnan')
+        minIndex = find(min_Difference_Location(:,i) == minValue)
+       
         %Zuweisung minimaler Abstand
-        
-           fprintf("Target mit Range %.4d nicht mehr findbar, gelöscht\n", Targets_aktuell(i).range)
-           Targets_aktuell(i) = clearTarget(Targets_aktuell(i)); 
-        
-        fprintf("Neues Target Range %.4d = Altes Target Range %.4d\n", Targets(min_Difference_Location(i)).range, Targets_aktuell(i).range)
-        Targets_aktuell(i).range = Targets(min_Difference_Location(i)).range;
-        Targets_aktuell(i).speed = Targets(min_Difference_Location(i)).speed;
-        Targets_aktuell(i).angle = Targets(min_Difference_Location(i)).angle;
-        
+            if minIndex ~= 0           
+            fprintf("Neues Target Range %.4d = Altes Target Range %.4d\n", Targets(min_Difference_Location(minIndex)).range, Targets_aktuell(i).range)
+            Targets_aktuell(i).range = Targets(min_Difference_Location(minIndex)).range;
+            Targets_aktuell(i).speed = Targets(min_Difference_Location(minIndex)).speed;
+            Targets_aktuell(i).angle = Targets(min_Difference_Location(minIndex)).angle;
+            else
+            fprintf("Target mit Range %.4d nicht mehr findbar, gelöscht\n", Targets_aktuell(i).range)
+            Targets_aktuell(i) = clearTarget(Targets_aktuell(i)); 
+            end
+        end
     end
      %wenn kein passendes Target gefunden wurde, neue Zuweisung
     end

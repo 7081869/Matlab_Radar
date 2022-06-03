@@ -30,9 +30,8 @@ clear k
 %dann mit durchlauf counter ersetzen oder nur beim ersten Durchlauf 
 %Targets_aktuell initialisieren
 for k = 1:3
-
+fprintf("Room Counter = %d", Room_Counter);
     %hier Übergabe neue Targets
-    clear i
     for i = 1:Max_RealTargets
         Targets(i) = FTarget;
         Targets(i).range = 1.25*i + k;
@@ -44,7 +43,6 @@ for k = 1:3
 
     %hier abgleich mit alten targets
 
-    clear i
     for i = 1:Max_RealTargets
         
         if k == 1
