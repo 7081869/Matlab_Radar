@@ -7,21 +7,19 @@
 %Jedes vom Sensor gefundene Target wird als solches gespeichert
 %Liegt ein gefundenes Target, innerhalb einer gewissen Toleranz
 %(messungenauigkeit des Sensors) um ein schon gefundenes Target wird das
-%Target diesem schon gefundenen Zugeordnet und ein Counter zählt hoch
+%Target diesem schon gefundenen Zugeordnet und ein Counter zÃ¤hlt hoch
 %Nur wenn ein Target, innerhalb der Frames, oft genug gefunden wurde, wird
 %das Target betrachtet
 %% Variablen speichern
 Range_tolerance = 1; %In Metern
 angle_tolerance = 10;
 appearance_border=6;
-max_objects = 10;
-
 Object_count = 0;
+max_objects = 10;
 zugeordnet = false;
 position=1;
 %%
 clear object_array
-clear output_array
 for k = 1:max_objects
     object_array(k) = Target;
 end
@@ -37,7 +35,7 @@ for x=1:20
                     object_array(k).Count = object_array(k).Count+1;
                     object_array(k).Werterange(object_array(k).Count)=range(x,y);
                     object_array(k).Werteangle(object_array(k).Count)=angle(x,y);
-                    fprintf('Wert %f zu Durchschnitt %f hinzugefügt, Winkel %f zu Durchschnitt %f hinzugefügt; Objekt %d\n', range(x,y), object_array(k).averagerange,angle(x,y), object_array(k).averageangle, Object_count)
+                    fprintf('Wert %f zu Durchschnitt %f hinzugefÃ¼gt, Winkel %f zu Durchschnitt %f hinzugefÃ¼gt; Objekt %d\n', range(x,y), object_array(k).averagerange,angle(x,y), object_array(k).averageangle, Object_count)
                
                     object_array(k).averagerange=object_array(k).Buildaveragerange();
                     object_array(k).averageangle=object_array(k).Buildaverageangle();
