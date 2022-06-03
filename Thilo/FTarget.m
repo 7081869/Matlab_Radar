@@ -1,8 +1,9 @@
 %%Klasse Target 
 classdef FTarget
     properties
-        range
-        angle
-        speed
+        range = NaN
+        angle = NaN
+        speed = NaN
+        origin = NaN
     end 
 end
