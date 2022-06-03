@@ -7,29 +7,55 @@
 %Jedes vom Sensor gefundene Target wird als solches gespeichert
 %Liegt ein gefundenes Target, innerhalb einer gewissen Toleranz
 %(messungenauigkeit des Sensors) um ein schon gefundenes Target wird das
-%Target diesem schon gefundenen Zugeordnet und ein Counter zÃ¤hlt hoch
+%Target diesem schon gefundenen Zugeordnet und ein Counter zählt hoch
 %Nur wenn ein Target, innerhalb der Frames, oft genug gefunden wurde, wird
 %das Target betrachtet
 
 %%Klasse Target 
 classdef Target
     properties(Access = public)
-        Count
-        averageangle
+        Count;
+        averagerange;
+        Werterange = NaN(20, 1);
+        averageangle;
         Werteangle = zeros(20, 1);
         InUse = false;
+        Wertespeed = zeros(20, 1);
+        averagespeed;
     end 
     methods (Access = public)
-        function av = Buildaverage(this)
-            count=0;
-            Sum=0;
+        function avr = Buildaveragerange(this)
+            countr=0;
+            Sumr=0;
             for i=1:20
-                if this.Werteangle(i)~=0
-                    count = count +1;
-                    Sum = Sum + this.Werteangle(i);
+                if this.Werterange(i)~=0
+                    countr = countr +1;
+                    Sumr = Sumr + this.Werterange(i);
                 end
             end
-            av = Sum / count;
+            avr = Sumr / countr;
+        end
+        function ava = Buildaverageangle(this)
+            counta=0;
+            Suma=0;
+            for i=1:20
+                if this.Werteangle(i)~=0
+                    counta = counta +1;
+                    Suma = Suma + this.Werteangle(i);
+                end
+            end
+            ava = Suma / counta;
+        end
+        function avs = Buildaveragespeed(this)
+            counts=0;
+            Sums=0;
+            for i=1:20
+                if this.Wertespeed(i)~=0
+                    counts = counts +1;
+                    Sums = Sums + this.Wertespeed(i);
+                end
+            end
+            avs = Sums / counts;
         end
     end
 end

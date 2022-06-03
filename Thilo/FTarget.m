@@ -4,6 +4,6 @@ classdef FTarget
         range = NaN
         angle = NaN
         speed = NaN
-        origin = NaN
+        origin = ""
     end 
 end

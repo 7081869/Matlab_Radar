@@ -12,7 +12,7 @@ clc;
 clear all;
 
 Room_Counter = 0;
-Max_RealTargets = 2;
+Max_RealTargets = 1;
 
 %Übergangsgrenzen
 Entrance_LowRangeLimit = 6;  
@@ -21,14 +21,12 @@ Room_LowRangeLimit = 2;
 Room_HighRangeLimit = 3;
 
 DetectionDistance = 1; 
-%max. Abstand in m zwischen altem und neuem Target, dass er noch als gleiches target erkannt wird 
-AngleDetectionDistance = 3;
+%max. Abstand zwischen altem und neuem Target, dass er noch als gleiches target erkannt wird 
 
-min_Difference_Location = NaN(Max_RealTargets,Max_RealTargets); %speichert gültige kleine Abtandsdifferenz werte
-Difference = NaN(Max_RealTargets,Max_RealTargets); %speichert die Differenz der Distance
-min_Difference_Angle = NaN(Max_RealTargets,Max_RealTargets); %speichert gültige kleine Winkeldifferenzen
-Angle_Difference = NaN(Max_RealTargets,Max_RealTargets); %speichert die Differenz der Angle
+min_Difference_Location = NaN(Max_RealTargets,Max_RealTargets); %speichert gültige kleine Sbtandsdifferenz werte
+Difference = NaN(Max_RealTargets,Max_RealTargets); %speichert die Difference
 
+clear k
 %dann mit durchlauf counter ersetzen oder nur beim ersten Durchlauf 
 %Targets_aktuell initialisieren
 for k = 1:11
@@ -42,11 +40,10 @@ fprintf("Room Counter = %d", Room_Counter);
         Targets(i).range = 2 + 0.5*k;
         end
         
-        Targets(i).angle = (i * 15) - k;
+        Targets(i).angle = (i * 10) - k;
         Targets(i).speed = i - 2;
         Targets(i).origin = "Not available";
         range = Targets(i).range
-        angle = Targets(i).angle
     end
 
     %hier abgleich mit alten targets
@@ -61,16 +58,13 @@ fprintf("Room Counter = %d", Room_Counter);
             %sucht das nächste Target, minimaler Abstand suchen
             for j = 1:Max_RealTargets
                 Difference(i,j) = abs(Targets_aktuell(i).range - Targets(j).range)
-                Angle_Difference(i,j) = abs(Targets_aktuell(i).angle - Targets(j).angle)
-                if (Difference(i,j) <= DetectionDistance) && (~isnan(Difference(i,j))) ...
-                  && (Angle_Difference(i,j) <= AngleDetectionDistance) && (~isnan(Angle_Difference(i,j)))
+                if (Difference(i,j) <= DetectionDistance) && (~isnan(Difference(i,j)))
                                
-                  min_Difference_Location(i,j) = Difference(i,j)  
-                  min_Difference_Angle(i,j) = Angle_Difference(i,j)
+                  min_Difference_Location(i,j) = Difference(i,j)    
                   %hier werden schon nur die gefilterten Werte gespeichert
                 end    
             end
-                                  
+                                    
         end
     end
 
@@ -103,14 +97,14 @@ fprintf("Room Counter = %d", Room_Counter);
             else
             fprintf("Target mit Range %.4f nicht mehr findbar, gelöscht\n", Targets_aktuell(i).range)
             Targets_aktuell(i) = clearTarget(Targets_aktuell(i)); 
-            %Target gelöscht, wenn nicht mehr sichtbar
             end
         end
     end
-     
+     %wenn kein passendes Target gefunden wurde, neue Zuweisung
     end
     
-         
+     
+    
     %Hier Logik und Output
     clear i
     for i = 1:Max_RealTargets

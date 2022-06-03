@@ -37,7 +37,7 @@ for x=1:20
                     object_array(k).Count = object_array(k).Count+1;
                     object_array(k).Werterange(object_array(k).Count)=range(x,y);
                     object_array(k).Werteangle(object_array(k).Count)=angle(x,y);
-                    fprintf('Wert %f zu Durchschnitt %f hinzugefügt, Winkel %f zu Durchschnitt %f hinzugefügt; Objekt %d\n', range(x,y), object_array(k).averagerange,angle(x,y), object_array(k).averageangle, Object_count)
+                   % fprintf('Wert %f zu Durchschnitt %f hinzugefügt, Winkel %f zu Durchschnitt %f hinzugefügt; Objekt %d\n', range(x,y), object_array(k).averagerange,angle(x,y), object_array(k).averageangle, Object_count)
                
                     object_array(k).averagerange=object_array(k).Buildaveragerange();
                     object_array(k).averageangle=object_array(k).Buildaverageangle();
@@ -59,7 +59,7 @@ for x=1:20
                    object_array(Object_count).InUse = true;
                    object_array(Object_count).averagerange=object_array(Object_count).Buildaveragerange();
                    object_array(Object_count).averageangle=object_array(Object_count).Buildaverageangle();
-                   fprintf('Neues Objekt erstellt an Position %d mit Wert %f und Winkel %f\n', Object_count, range(x,y), angle(x,y))
+                   % fprintf('Neues Objekt erstellt an Position %d mit Wert %f und Winkel %f\n', Object_count, range(x,y), angle(x,y))
                 end   
             end
         end

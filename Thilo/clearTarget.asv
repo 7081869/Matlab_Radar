@@ -1,5 +1,0 @@
-function clearTarget(inputArg1)
-%clearTarget Resets Data to NaN
-
-end
-

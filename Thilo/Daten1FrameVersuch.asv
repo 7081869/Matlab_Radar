@@ -549,11 +549,11 @@ while(1)
                                 object_array(k).Werterange(object_array(k).Count)=range(x,y);
                                 object_array(k).Werteangle(object_array(k).Count)=angle(x,y);
                                 object_array(k).Wertespeed(object_array(k).Count)=speed(x,y);
-                               % fprintf('Wert %f zu Durchschnitt %f hinzugefügt, Winkel %f zu Durchschnitt %f hinzugefügt, Speed: %f zu Durchschnitt %f hinzugefügt; Objekt %d\n', range(x,y), object_array(k).averagerange,angle(x,y), object_array(k).averageangle,speed(x,y), object_array(k).averageangle, Object_count)
+                                fprintf('Wert %f zu Durchschnitt %f hinzugefügt, Winkel %f zu Durchschnitt %f hinzugefügt, Speed: %f zu Durchschnitt %f hinzugefügt; Objekt %d\n', range(x,y), object_array(k).averagerange,angle(x,y), object_array(k).averageangle,speed(x,y), object_array(k).averageangle, Object_count)
 
                                 object_array(k).averagerange=object_array(k).Buildaveragerange();
                                 object_array(k).averageangle=object_array(k).Buildaverageangle();
-                                object_array(k).averagespeed=object_array(k).Buildaveragespeed();
+                                object_array(k).averageangle=object_array(k).Buildaveragespeed();
                                 zugeordnet = true;
 
                                 break;
@@ -573,8 +573,8 @@ while(1)
                                object_array(Object_count).InUse = true;
                                object_array(Object_count).averagerange=object_array(Object_count).Buildaveragerange();
                                object_array(Object_count).averageangle=object_array(Object_count).Buildaverageangle();
-                               object_array(Object_count).averagespeed=object_array(Object_count).Buildaveragespeed();
-                              % fprintf('Neues Objekt erstellt an Position %d mit Wert %f und Winkel %f und Speed %f \n', Object_count, range(x,y), angle(x,y), speed(x,y))
+                               object_array(Object_count).averageangle=object_array(Object_count).Buildaveragespeed();
+                               fprintf('Neues Objekt erstellt an Position %d mit Wert %f und Winkel %f und Speed %f \n', Object_count, range(x,y), angle(x,y), speed(x,y))
                             end   
                         end
                     end
@@ -643,7 +643,7 @@ while(1)
                     else
                        
                         %sucht das nächste Target, minimaler Abstand suchen
-                        for j = 1:position
+                        for j = 1:Max_RealTargets
                             Difference(i,j) = abs(Targets_aktuell(i).range - Targets(j).range);
                             Angle_Difference(i,j) = abs(Targets_aktuell(i).angle - Targets(j).angle);
                             if (Difference(i,j) <= DetectionDistance) && (~isnan(Difference(i,j))) ...
@@ -666,8 +666,8 @@ while(1)
                     minValue = 0;
                     minRow = 0;
                     minColumn = 0;
-                    minValue = min(min_Difference_Location,[],2,'omitnan');
-                   [minRow, minColumn] = find(min_Difference_Location == minValue);
+                    minValue = min(min_Difference_Location,[],2,'omitnan')
+                   [minRow, minColumn] = find(min_Difference_Location == minValue)
 
                 for i = 1:position
 
@@ -699,7 +699,7 @@ while(1)
                 clear i
                 for i = 1:position
                     if Targets_aktuell(i).range > Entrance_HighRangeLimit
-                       fprintf("Target outside, Upper Range\n")
+                       fprintf("Target out, Upper Range\n")
                        if Targets_aktuell(i).origin == "Lower"
                         Room_Counter = Room_Counter - 1;
                         fprintf("Target left\nCounter: %d", Room_Counter);
@@ -730,7 +730,7 @@ while(1)
                     end
 
                     if (Targets_aktuell(i).range < Room_LowRangeLimit)
-                       fprintf("Target outside, Lower Range\n")
+                       fprintf("Target out, Lower Range\n")
                        if Targets_aktuell(i).origin == "Upper"
                         Room_Counter = Room_Counter + 1;
                         fprintf("Target entered\nCounter: %d", Room_Counter);

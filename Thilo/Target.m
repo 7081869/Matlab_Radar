@@ -14,19 +14,21 @@
 %%Klasse Target 
 classdef Target
     properties(Access = public)
-        Count
-        averagerange
-        Werterange = zeros(20, 1);
-        averageangle
-        Werteangle = zeros(20, 1);
+        Count;
+        averagerange;
+        Werterange = NaN(20, 1);
+        averageangle;
+        Werteangle = NaN(20, 1);
         InUse = false;
+        Wertespeed = NaN(20, 1);
+        averagespeed;
     end 
     methods (Access = public)
         function avr = Buildaveragerange(this)
             countr=0;
             Sumr=0;
             for i=1:20
-                if this.Werterange(i)~=0
+                if ~isnan(this.Werterange(i))
                     countr = countr +1;
                     Sumr = Sumr + this.Werterange(i);
                 end
@@ -37,12 +39,23 @@ classdef Target
             counta=0;
             Suma=0;
             for i=1:20
-                if this.Werteangle(i)~=0
+                if ~isnan(this.Werteangle(i))
                     counta = counta +1;
                     Suma = Suma + this.Werteangle(i);
                 end
             end
             ava = Suma / counta;
+        end
+        function avs = Buildaveragespeed(this)
+            counts=0;
+            Sums=0;
+            for i=1:20
+                if ~isnan(this.Wertespeed(i))
+                    counts = counts +1;
+                    Sums = Sums + this.Wertespeed(i);
+                end
+            end
+            avs = Sums / counts;
         end
     end
 end
