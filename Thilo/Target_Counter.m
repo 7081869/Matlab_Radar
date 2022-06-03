@@ -23,6 +23,9 @@ Room_HighRangeLimit = 3;
 DetectionDistance = 1; 
 %max. Abstand zwischen altem und neuem Target, dass er noch als gleiches target erkannt wird 
 
+min_Difference_Location = NaN(3,3); %speichert gültige kleine Sbtandsdifferenz werte
+Difference = NaN(3,3); %speichert die Difference
+
 clear k
 %dann mit durchlauf counter ersetzen oder nur beim ersten Durchlauf 
 %Targets_aktuell initialisieren
@@ -36,42 +39,66 @@ for k = 1:3
         Targets(i).angle = (i * 10) - k;
         Targets(i).speed = i - 2;
         Targets(i).origin = "Not available";
+        range = Targets(i).range
     end
 
     %hier abgleich mit alten targets
 
     clear i
     for i = 1:Max_RealTargets
+        
         if k == 1
         Targets_aktuell(i) = Targets(i);
         else
             clear j
-            min_Difference_Location = Max_RealTargets + 1; %speichert wo geringste Änderung Range
-            min_Difference = DetectionDistance + 0.1; %speichert die min Difference
-            
-            %sucht das nächste Target
+                                   
+            %sucht das nächste Target, minimaler Abstand suchen
             for j = 1:Max_RealTargets
-                Difference = abs(Targets_aktuell(i).range - Targets(j).range)
-                if Difference <= DetectionDistance && Difference < min_Difference
-                  min_Difference = Difference;
-                  min_Difference_Location = j;                    
+                Difference(i,j) = abs(Targets_aktuell(i).range - Targets(j).range)
+                if (Difference(i,j) <= DetectionDistance) && (~isnan(Difference(i,j)))
+                               
+                  min_Difference_Location(i,j) = Difference(i,j)    
+                  %hier werden schon nur die gefilterten Werte gespeichert
                 end    
             end
-            
-            if min_Difference_Location ==  Max_RealTargets + 1
-               fprintf("Target mit Range %.4d nicht mehr findbar, gelöscht", Targets_aktuell(i).range)
-                clear Targets_aktuell(i) 
-            else
-                fprintf("Neues Target Range %.4d = Altes Target Range %.4d", Targets(min_Difference_Location).range, Targets_aktuell(i).range)
-                Targets_aktuell(i).range = Targets(min_Difference_Location).range;
-                Targets_aktuell(i).speed = Targets(min_Difference_Location).speed;
-                Targets_aktuell(i).angle = Targets(min_Difference_Location).angle;
-            end
-            
+                                    
         end
     end
 
-
+    
+     
+    if k > 1
+    for i = 1:Max_RealTargets
+        
+        
+        %Zuweisung neue an aktuell Targets, wenn altes Target gelöscht ist
+        if isnan(Targets_aktuell(i).range) &&  isnan(Targets_aktuell(i).speed) && isnan(Targets_aktuell(i).angle) && isnan(Targets_aktuell(i).origin)
+            Targets_aktuell(i) = Targets(i);
+        else
+            
+        %Wo ist der minimalste Abstand?
+        minValue = 0;
+        minIndex = 0;
+        minValue = min( min_Difference_Location(:,i),[],2,'omitnan')
+        minIndex = find(min_Difference_Location(:,i) == minValue)
+       
+        %Zuweisung minimaler Abstand
+            if minIndex ~= 0           
+            fprintf("Neues Target Range %.4d = Altes Target Range %.4d\n", Targets(min_Difference_Location(minIndex)).range, Targets_aktuell(i).range)
+            Targets_aktuell(i).range = Targets(min_Difference_Location(minIndex)).range;
+            Targets_aktuell(i).speed = Targets(min_Difference_Location(minIndex)).speed;
+            Targets_aktuell(i).angle = Targets(min_Difference_Location(minIndex)).angle;
+            else
+            fprintf("Target mit Range %.4d nicht mehr findbar, gelöscht\n", Targets_aktuell(i).range)
+            Targets_aktuell(i) = clearTarget(Targets_aktuell(i)); 
+            end
+        end
+    end
+     %wenn kein passendes Target gefunden wurde, neue Zuweisung
+    end
+    
+     
+    
     %Hier Logik und Output
     clear i
     for i = 1:Max_RealTargets
@@ -80,7 +107,7 @@ for k = 1:3
            if Targets_aktuell(i).origin == "Lower"
             Room_Counter = Room_Counter - 1;
             fprintf("Target left\nCounter: %d", Room_Counter);
-            clearvars Targets_aktuell(i)
+           Targets_aktuell(i) = clearTarget(Targets_aktuell(i));
            end
         end
 
@@ -95,7 +122,7 @@ for k = 1:3
            fprintf("Target in Supervision Area\n")
            if Targets_aktuell(i).origin == "Not available"
             fprintf("Error: Target appeared in the middle, Target deleted\n");
-            clearvars Targets_aktuell(i);
+           Targets_aktuell(i) = clearTarget(Targets_aktuell(i));
            end
         end
 
@@ -111,7 +138,7 @@ for k = 1:3
            if Targets_aktuell(i).origin == "Upper"
             Room_Counter = Room_Counter + 1;
             fprintf("Target entered\nCounter: %d", Room_Counter);
-            clearvars Targets_aktuell(i)
+           Targets_aktuell(i) = clearTarget(Targets_aktuell(i));
            end
         end
     end
