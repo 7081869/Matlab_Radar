@@ -185,7 +185,7 @@ max_objects = 20; %Beinhaltet Fehlerhaft erkannte
 
     calib_rx1 = (calib_i1 + j * calib_q1).';
     calib_rx2 = (calib_i2 + j * calib_q2).';
-%% Konstanten Target_counter
+%% Konstanten Target_counter und Initialisierungen
 Room_Counter = 0;
 Max_RealTargets = max_num_targets;
 
@@ -204,6 +204,13 @@ Difference = NaN(Max_RealTargets,Max_RealTargets); %speichert die Differenz der 
 min_Difference_Angle = NaN(Max_RealTargets,Max_RealTargets); %speichert gültige kleine Winkeldifferenzen
 Angle_Difference = NaN(Max_RealTargets,Max_RealTargets); %speichert die Differenz der Angle
     
+for i = 1:Max_RealTargets
+Targets_aktuell(i) = FTarget;
+Targets(i) = FTarget;
+end
+
+assignable = 0;
+isMinColumnAvailable = 0;
 %%
 wiederholungen = 0;
 fprintf('This message is sent at start %s\n', datestr(now,'HH:MM:SS.FFF'))
@@ -591,41 +598,9 @@ while(1)
                     position = position +1;
                 end
             end
-
-
-
-            %    set(gcf,'color','w'); % Set Background color white
-            %    
-            %    z='.';
-            %     figure(1)
-            %     plot((1:20),strength(:,1),z,(1:20),strength(:,2),z,(1:20),strength(:,3),z)
-            %       title ('FFT Amplitude');
-            %      xlabel('Frames')
-            %      ylabel('Amplitude');
-            %      leg_range = [leg; 'Range TH'];
-            %      legend(leg_range,'Location','EastOutside');
-            %    figure(2)
-            %     plot((1:20),range(:,1),z,(1:20),range(:,2),z,(1:20),range(:,3),z)
-            %     title ('Range');
-            %     xlabel('Frames')
-            %     ylabel('Range / m');
-            %     legend(leg,'Location','EastOutside');
-            %    figure(3)    
-            %     plot((1:20),speed(:,1),z,(1:20),speed(:,2),z,(1:20),speed(:,3),z)
-            %     title ('Geschwindigkeit');
-            %     xlabel('Frames')
-            %     ylabel('Geschwindigkeit in m/s');
-            %     legend(leg,'Location','EastOutside');
-            %     figure(4)
-            %     plot((1:20),angle(:,1),z,(1:20),angle(:,2),z,(1:20),angle(:,3),z)
-            %     title ('Winkel');
-            %     xlabel('Frames')
-            %     ylabel('Winkel in °');
-            %     legend(leg,'Location','EastOutside');
-             %   pause(0.05)
-             
+            
   %% Target Counter 
-             fprintf("Room Counter = %d", Room_Counter);
+             fprintf("Room Counter = %d\n", Room_Counter);
                 %hier Übergabe neue Targets
                 position = position - 1;
                 for i = 1:position
@@ -634,14 +609,15 @@ while(1)
                     NewTargetAngle = Targets(i).angle
                 end
 
-                %hier abgleich mit alten targets
-
-                for i = 1:position
-
-                    if counter == 21
+                %Erster Durchlauf
+                if counter == 21
+                    for i = 1:position
                     Targets_aktuell(i) = Targets(i);
-                    else
-                       
+                    end
+                end
+                
+                %hier abgleich mit alten targets
+                for i = 1:position                             
                         %sucht das nächste Target, minimaler Abstand suchen
                         for j = 1:position
                             Difference(i,j) = abs(Targets_aktuell(i).range - Targets(j).range);
@@ -654,8 +630,6 @@ while(1)
                               %hier werden schon nur die gefilterten Werte gespeichert
                             end    
                         end
-
-                    end
                 end
 
 
@@ -673,13 +647,14 @@ while(1)
 
 
                     %Zuweisung neue an aktuell Targets, wenn altes Target gelöscht ist
-                    if isnan(Targets_aktuell(i).range) &&  isnan(Targets_aktuell(i).speed) && isnan(Targets_aktuell(i).angle) && (Targets_aktuell(i).origin ~= "")
+                    if isnan(Targets_aktuell(i).range) &&  isnan(Targets_aktuell(i).speed) && isnan(Targets_aktuell(i).angle) && (Targets_aktuell(i).origin == "")
                         Targets_aktuell(i) = Targets(i);
+                        fprintf("Neues Target mit Range %.4f\n", Targets_aktuell(i).range)
                     else
-
-
                     %Zuweisung minimaler Abstand
-                        if minColumn ~= 0           
+                    assignable = (size(minColumn, 1) >= i);
+                    isMinColumnAvailable = (minColumn(i) ~= 0);
+                    if (isMinColumnAvailable  && assignable)        
                         fprintf("Neues Target Range %.4f = Altes Target Range %.4f\n", Targets(minColumn(i)).range, Targets_aktuell(i).range)
                         Targets_aktuell(i).range = Targets(minColumn(i)).range;
                         Targets_aktuell(i).speed = Targets(minColumn(i)).speed;
@@ -691,13 +666,20 @@ while(1)
                         end
                     end
                 end
-
                 end
 
 
-                %Hier Logik und Output
-                clear i
+                %Hier Logik und Output und Visualierung 
                 for i = 1:position
+                    
+                set(gcf,'color','w'); % Set Background color white
+                figure(i)
+                polarplot(deg2rad(Targets_aktuell(i).angle), Targets_aktuell(i).range, 'o')
+                legendstr = sprintf('Origin is %s\nCurrent Speed is %f', Targets_aktuell(i).origin, Targets_aktuell(i).speed);
+                legend(legendstr)
+                ax = gca;
+                ax.ThetaZeroLocation = 'Top';
+                    
                     if Targets_aktuell(i).range > Entrance_HighRangeLimit
                        fprintf("Target outside, Upper Range\n")
                        if Targets_aktuell(i).origin == "Lower"
@@ -709,14 +691,14 @@ while(1)
 
                     if (Targets_aktuell(i).range <= Entrance_HighRangeLimit) && (Targets_aktuell(i).range >= Entrance_LowRangeLimit)
                        fprintf("Target in Entrance Area\n")
-                       if Targets_aktuell(i).origin == "Not available"
+                       if Targets_aktuell(i).origin == ""
                         Targets_aktuell(i).origin = "Upper";
                        end
                     end
 
                     if (Targets_aktuell(i).range > Room_HighRangeLimit) && (Targets_aktuell(i).range < Entrance_LowRangeLimit)
                        fprintf("Target in Supervision Area\n")
-                       if Targets_aktuell(i).origin == "Not available"
+                       if Targets_aktuell(i).origin == ""
                         fprintf("Error: Target appeared in the middle, Target deleted\n");
                        Targets_aktuell(i) = clearTarget(Targets_aktuell(i));
                        end
@@ -724,7 +706,7 @@ while(1)
 
                     if (Targets_aktuell(i).range >= Room_LowRangeLimit) && (Targets_aktuell(i).range <= Room_HighRangeLimit)
                        fprintf("Target in Room Area\n")
-                       if Targets_aktuell(i).origin == "Not available"
+                       if Targets_aktuell(i).origin == ""
                         Targets_aktuell(i).origin = "Lower";
                        end
                     end
@@ -737,8 +719,38 @@ while(1)
                        Targets_aktuell(i) = clearTarget(Targets_aktuell(i));
                        end
                     end
-                end
-            end
+                
+                
 
+%                z='.';
+%                figure(1)
+%                 plot((1:5),Targets_aktuell(i).angle,z)
+%                 title ('Winkel Target');
+%                 xlabel('Frames')
+%                 ylabel('Winkel in °');
+%                 legend(leg,'Location','EastOutside');
+%                 grid
+%                figure(2)
+%                 plot((1:5),Targets_aktuell(i).range,z)
+%                 title ('Range Target');
+%                 xlabel('Frames')
+%                 ylabel('Range / m');
+%                 legend(leg,'Location','EastOutside');
+%                 grid
+%                figure(3)    
+%                 plot((1:5),Targets_aktuell(i).speed ,z)
+%                 title ('Geschwindigkeit Target');
+%                 xlabel('Frames')
+%                 ylabel('Geschwindigkeit in m/s');
+%                 legend(leg,'Location','EastOutside');
+%                 grid
+                
+                end        
+       end
+
+            
     end
+    
+   
+   
 end

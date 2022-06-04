@@ -3,6 +3,6 @@ function Targets_aktuell = clearTarget(Targets_aktuell)
     Targets_aktuell.range = NaN;
     Targets_aktuell.angle = NaN;
     Targets_aktuell.speed = NaN;
-    Targets_aktuell.origin = NaN;
+    Targets_aktuell.origin = "";
 end
 

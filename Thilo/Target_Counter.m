@@ -95,7 +95,8 @@ fprintf("Room Counter = %d", Room_Counter);
             
         
         %Zuweisung minimaler Abstand
-            if minColumn ~= 0           
+            %if (minColumn ~= 0)  && 
+            if(size(minColumn, 1) >= i)          
             fprintf("Neues Target Range %.4f = Altes Target Range %.4f\n", Targets(minColumn(i)).range, Targets_aktuell(i).range)
             Targets_aktuell(i).range = Targets(minColumn(i)).range;
             Targets_aktuell(i).speed = Targets(minColumn(i)).speed;
