@@ -89,9 +89,11 @@ oRS.oEPRadarFMCW.direction = 'Up Only';
 
 %% Variablen Durchschnittsberechnung
 Range_tolerance = 1; %In Metern
-angle_tolerance = 10;
+angle_tolerance = 17;
 appearance_border=6;
 max_objects = 20; %Beinhaltet Fehlerhaft erkannte
+wertespeicher= NaN(30,2);
+zaehler=1;
 %% Initialisierung Ausgabewerte
     strength = zeros(20, 3);
     range = zeros(20, 3);
@@ -134,7 +136,7 @@ max_objects = 20; %Beinhaltet Fehlerhaft erkannte
     Doppler_threshold = 50; % Amplitude threshold to find peaks in Doppler FFT
 
     min_distance =  0.9; % Minimum distance of the target from the radar (recommended to be at least 0.9 m)
-    max_distance = 7.0; % Maximum distance of the target from the radar (recommended to be maximum 25.0 m)
+    max_distance = 8.0; % Maximum distance of the target from the radar (recommended to be maximum 25.0 m)
 
     max_num_targets = 3; % Maximum number of targets that can be detected   
  
@@ -197,7 +199,7 @@ Room_HighRangeLimit = 3;
 
 DetectionDistance = 1; 
 %max. Abstand in m zwischen altem und neuem Target, dass er noch als gleiches target erkannt wird 
-AngleDetectionDistance = 3;
+AngleDetectionDistance = 10;
 
 min_Difference_Location = NaN(Max_RealTargets,Max_RealTargets); %speichert gültige kleine Abtandsdifferenz werte
 Difference = NaN(Max_RealTargets,Max_RealTargets); %speichert die Differenz der Distance
@@ -479,60 +481,67 @@ while(1)
     
         
 
-    leg = [];
-    for i = 1:max_num_targets
-        
-       leg = [leg; 'Target ', num2str(i)];
-        % fprintf("Target %d\n", i);
-       
+
+   
+     
+     
+  if ((counter > 21))
+      wertespeicher(zaehler,1)=Targets(1).range;
+      wertespeicher(zaehler, 2)=Targets(1).angle;
+      zaehler=zaehler+1;
+  end
         
            
        if counter<21
-           if i > num_of_targets
-               strength(counter, i) = NaN;
+           for i = 1:max_num_targets
+               if i > num_of_targets
+                   strength(counter, i) = NaN;
 
-               range(counter, i) = NaN;
+                   range(counter, i) = NaN;
 
-               speed(counter, i) = NaN;
+                   speed(counter, i) = NaN;
 
-               angle(counter, i) = NaN;
-           else    
-               strength(counter, i) = (target_measurements.strength(1,i));
+                   angle(counter, i) = NaN;
+               else    
+                   strength(counter, i) = (target_measurements.strength(1,i));
 
-               range(counter, i) = (target_measurements.range(1,i));
+                   range(counter, i) = (target_measurements.range(1,i));
 
-               speed(counter, i) = (target_measurements.speed(1,i));
+                   speed(counter, i) = (target_measurements.speed(1,i));
 
-               angle(counter, i) = (target_measurements.angle(1,i));
+                   angle(counter, i) = (target_measurements.angle(1,i));
+               end
            end
        else
-           strength(1:19, i)=strength(2:20, i);
-           range(1:19, i)=range(2:20, i);
-           speed(1:19, i)=speed(2:20, i);
-           angle(1:19, i)=angle(2:20, i);
-           if i > num_of_targets
-               strength(20, i) = NaN;
-               range(20, i) = NaN;
-               speed(20, i) = NaN;
-               angle(20, i) = NaN;
-           else
-               s = (target_measurements.strength(1,i));
-               strength(20, i) = s;
+           for i = 1:max_num_targets
+               strength(1:19, i)=strength(2:20, i);
+               range(1:19, i)=range(2:20, i);
+               speed(1:19, i)=speed(2:20, i);
+               angle(1:19, i)=angle(2:20, i);
+               if i > num_of_targets
+                   strength(20, i) = NaN;
+                   range(20, i) = NaN;
+                   speed(20, i) = NaN;
+                   angle(20, i) = NaN;
+               else
+                   s = (target_measurements.strength(1,i));
+                   strength(20, i) = s;
 
-%                disp('target: ')
-%                disp(i)
-               r = (target_measurements.range(1,i));
-               range(20, i) = r;
-
-
-               s = (target_measurements.speed(1,i));
-               speed(20, i) = s;
+    %                disp('target: ')
+    %                disp(i)
+                   r = (target_measurements.range(1,i));
+                   range(20, i) = r;
 
 
-               a = (target_measurements.angle(1,i));
-               angle(20, i) = a;
+                   s = (target_measurements.speed(1,i));
+                   speed(20, i) = s;
+
+
+                   a = (target_measurements.angle(1,i));
+                   angle(20, i) = a;
+               end
            end
-      
+       
 %% Durschnittswertsbildung von Distanz und Winkel über die letzten 20 Werte
             Object_count = 0;
             zugeordnet = false;
@@ -598,11 +607,13 @@ while(1)
                     position = position +1;
                 end
             end
-            
+        
+              
   %% Target Counter 
              fprintf("Room Counter = %d\n", Room_Counter);
                 %hier Übergabe neue Targets
                 position = position - 1;
+                clear Targets;
                 for i = 1:position
                     Targets(i) = output_array(i);
                     NewTargetRange = Targets(i).range
@@ -616,58 +627,78 @@ while(1)
                     end
                 end
                 
-                %hier abgleich mit alten targets
-                for i = 1:position                             
-                        %sucht das nächste Target, minimaler Abstand suchen
-                        for j = 1:position
-                            Difference(i,j) = abs(Targets_aktuell(i).range - Targets(j).range);
-                            Angle_Difference(i,j) = abs(Targets_aktuell(i).angle - Targets(j).angle);
-                            if (Difference(i,j) <= DetectionDistance) && (~isnan(Difference(i,j))) ...
-                              && (Angle_Difference(i,j) <= AngleDetectionDistance) && (~isnan(Angle_Difference(i,j)))
-
-                              min_Difference_Location(i,j) = Difference(i,j);
-                              min_Difference_Angle(i,j) = Angle_Difference(i,j);
-                              %hier werden schon nur die gefilterten Werte gespeichert
-                            end    
-                        end
-                end
-
-
-
                 if counter > 21
+                    min_Difference_Location = NaN(position,position);
+                    min_Difference_Angle = NaN(position,position);
+
+                    %hier abgleich mit alten targets
+                    for i = 1:position                             
+                            %sucht das nächste Target, minimaler Abstand suchen
+                            for j = 1:position
+                                Difference(i,j) = abs(Targets_aktuell(i).range - Targets(j).range);
+                                Angle_Difference(i,j) = abs(Targets_aktuell(i).angle - Targets(j).angle);
+
+                                if (Difference(i,j) <= DetectionDistance) && (~isnan(Difference(i,j))) ...
+                                  && (Angle_Difference(i,j) <= AngleDetectionDistance) && (~isnan(Angle_Difference(i,j)))
+
+                                  min_Difference_Location(i,j) = Difference(i,j);
+                                  min_Difference_Angle(i,j) = Angle_Difference(i,j);
+                                  %hier werden schon nur die gefilterten Werte gespeichert
+                                end    
+                            end
+                    end
 
                  %Wo ist der minimalste Abstand?
-                    minValue = 0;
+                    minValue = -1;
                     minRow = 0;
                     minColumn = 0;
                     minValue = min(min_Difference_Location,[],2,'omitnan');
                    [minRow, minColumn] = find(min_Difference_Location == minValue);
+                    assignment_Counter = 0;
+                    
+                    for i = 1:position
 
-                for i = 1:position
+                       if i<size(minColumn, 1)
+                        %Überprüfung ob neue Targets 2 mal zugeordnet werden 
+                            for k = i+1:size(minColumn, 1)
+                                if minColumn(i) == minColumn(k)
+                                    % falls gleiche Spalten, nach anderem
+                                    % nahen objekt suchen, sonst löschen
+                                    fprintf("Target mit Range %.4f gelöscht, doppelt nahe distanz\n", Targets_aktuell(k).range)
+                                    Targets_aktuell(k) = clearTarget(Targets_aktuell(k)); %%2. Target in der Nähe löschen
+                                end
+                            end
+                        end
+                        %Zuweisung neue an aktuell Targets, wenn altes Target gelöscht ist
+                        if ~(isnan(Targets_aktuell(i).range) &&  isnan(Targets_aktuell(i).speed) && isnan(Targets_aktuell(i).angle) && (Targets_aktuell(i).origin == ""))
+                            %Zuweisung minimaler Abstand
+                            assignment_Counter = assignment_Counter +1;
+                            assignable = (size(minColumn, 1) >= assignment_Counter);
 
-
-                    %Zuweisung neue an aktuell Targets, wenn altes Target gelöscht ist
-                    if isnan(Targets_aktuell(i).range) &&  isnan(Targets_aktuell(i).speed) && isnan(Targets_aktuell(i).angle) && (Targets_aktuell(i).origin == "")
-                        Targets_aktuell(i) = Targets(i);
-                        fprintf("Neues Target mit Range %.4f\n", Targets_aktuell(i).range)
-                    else
-                    %Zuweisung minimaler Abstand
-                    assignable = (size(minColumn, 1) >= i);
-                    isMinColumnAvailable = (minColumn(i) ~= 0);
-                    if (isMinColumnAvailable  && assignable)        
-                        fprintf("Neues Target Range %.4f = Altes Target Range %.4f\n", Targets(minColumn(i)).range, Targets_aktuell(i).range)
-                        Targets_aktuell(i).range = Targets(minColumn(i)).range;
-                        Targets_aktuell(i).speed = Targets(minColumn(i)).speed;
-                        Targets_aktuell(i).angle = Targets(minColumn(i)).angle;
+                            if assignable        
+                                fprintf("Neues Target Range %.4f = Altes Target Range %.4f\n", Targets(minColumn(assignment_Counter)).range, Targets_aktuell(i).range)
+                                Targets_aktuell(i).range = Targets(minColumn(assignment_Counter)).range;
+                                Targets_aktuell(i).speed = Targets(minColumn(assignment_Counter)).speed;
+                                Targets_aktuell(i).angle = Targets(minColumn(assignment_Counter)).angle;                            
+                            end
                         else
-                        fprintf("Target mit Range %.4f nicht mehr findbar, gelöscht\n", Targets_aktuell(i).range)
-                        Targets_aktuell(i) = clearTarget(Targets_aktuell(i)); 
-                        %Target gelöscht, wenn nicht mehr sichtbar
+
+                            %  Zuweisung frische Targets
+                            Targets_aktuell(i) = Targets(i);
+                            fprintf("Neues Target mit Range %.4f\n", Targets_aktuell(i).range)
                         end
                     end
-                end
-                end
+                    end
 
+                    %Hier werden alte Targets gelöscht, die nicht mehr zuweisbar sind 
+                    if position < Max_RealTargets
+                        for j = position+1:Max_RealTargets
+                           % fprintf("Target mit Range %.4f nicht mehr findbar, gelöscht\n", Targets_aktuell(j).range)
+                            Targets_aktuell(j) = clearTarget(Targets_aktuell(j)); 
+                            %Target gelöscht, wenn nicht mehr sichtbar
+                            clear figure(j)
+                        end
+                     end
 
                 %Hier Logik und Output und Visualierung 
                 for i = 1:position
@@ -677,10 +708,12 @@ while(1)
                 polarplot(deg2rad(Targets_aktuell(i).angle), Targets_aktuell(i).range, 'o')
                 legendstr = sprintf('Origin is %s\nCurrent Speed is %f', Targets_aktuell(i).origin, Targets_aktuell(i).speed);
                 legend(legendstr)
+                titlestr = sprintf("Room Counter = %d", Room_Counter);
+                title(titlestr)
                 ax = gca;
                 ax.ThetaZeroLocation = 'Top';
-                    
-                    if Targets_aktuell(i).range > Entrance_HighRangeLimit
+                
+                 if Targets_aktuell(i).range > Entrance_HighRangeLimit
                        fprintf("Target outside, Upper Range\n")
                        if Targets_aktuell(i).origin == "Lower"
                         Room_Counter = Room_Counter - 1;
@@ -692,15 +725,15 @@ while(1)
                     if (Targets_aktuell(i).range <= Entrance_HighRangeLimit) && (Targets_aktuell(i).range >= Entrance_LowRangeLimit)
                        fprintf("Target in Entrance Area\n")
                        if Targets_aktuell(i).origin == ""
-                        Targets_aktuell(i).origin = "Upper";
+                            Targets_aktuell(i).origin = "Upper";
                        end
                     end
 
                     if (Targets_aktuell(i).range > Room_HighRangeLimit) && (Targets_aktuell(i).range < Entrance_LowRangeLimit)
                        fprintf("Target in Supervision Area\n")
                        if Targets_aktuell(i).origin == ""
-                        fprintf("Error: Target appeared in the middle, Target deleted\n");
-                       Targets_aktuell(i) = clearTarget(Targets_aktuell(i));
+                            fprintf("Error: Target appeared in the middle, Target deleted\n");
+                            Targets_aktuell(i) = clearTarget(Targets_aktuell(i));
                        end
                     end
 
@@ -749,7 +782,7 @@ while(1)
        end
 
             
-    end
+   
     
    
    
