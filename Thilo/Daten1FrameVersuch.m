@@ -485,11 +485,7 @@ while(1)
    
      
      
-  if ((counter > 21))
-      wertespeicher(zaehler,1)=Targets(1).range;
-      wertespeicher(zaehler, 2)=Targets(1).angle;
-      zaehler=zaehler+1;
-  end
+ 
         
            
        if counter<21
@@ -542,7 +538,7 @@ while(1)
                end
            end
        
-%% Durschnittswertsbildung von Distanz und Winkel über die letzten 20 Werte
+%% Durchschnittswertsbildung von Distanz und Winkel über die letzten 20 Werte
             Object_count = 0;
             zugeordnet = false;
             position=1;
@@ -596,18 +592,30 @@ while(1)
                     end
                 end
             end
+            
             for k = 1:max_objects
                 output_array(k) = FTarget;
             end
-            for k = 1:max_objects
-                if object_array(k).Count >= appearance_border
-                    output_array(position).range = object_array(k).averagerange;
-                    output_array(position).angle = object_array(k).averageangle;
-                    output_array(position).speed = object_array(k).averagespeed;
+            used = [0, 0];
+            for i = 1 : 3
+                highest = [0 0]; %position und wert
+                for k = 1:max_objects
+                    if ((object_array(k).Count >= appearance_border)&(k~=used(1))&(k~=used(2)))
+                            if object_array(k).Count > highest(2)
+                               highest(1) = k;
+                               highest(2) = object_array(k).Count;
+                               used(i) = k;
+                            end                            
+                    end
+                end
+                if highest(1) ~= 0
+                    output_array(position).range = object_array(highest(1)).averagerange;
+                    output_array(position).angle = object_array(highest(1)).averageangle;
+                    output_array(position).speed = object_array(highest(1)).averagespeed;
                     position = position +1;
                 end
             end
-        
+            
               
   %% Target Counter 
              fprintf("Room Counter = %d\n", Room_Counter);
@@ -630,6 +638,8 @@ while(1)
                 if counter > 21
                     min_Difference_Location = NaN(position,position);
                     min_Difference_Angle = NaN(position,position);
+                    Difference = NaN(position,position);
+                    Angle_Difference = NaN(position,position);
 
                     %hier abgleich mit alten targets
                     for i = 1:position                             
@@ -660,7 +670,8 @@ while(1)
 
                        if i<size(minColumn, 1)
                         %Überprüfung ob neue Targets 2 mal zugeordnet werden 
-                            for k = i+1:size(minColumn, 1)
+                        j = i + 1;    
+                            for k = j:size(minColumn, 1)
                                 if minColumn(i) == minColumn(k)
                                     % falls gleiche Spalten, nach anderem
                                     % nahen objekt suchen, sonst löschen
@@ -668,6 +679,7 @@ while(1)
                                     Targets_aktuell(k) = clearTarget(Targets_aktuell(k)); %%2. Target in der Nähe löschen
                                 end
                             end
+                            clear j;
                         end
                         %Zuweisung neue an aktuell Targets, wenn altes Target gelöscht ist
                         if ~(isnan(Targets_aktuell(i).range) &&  isnan(Targets_aktuell(i).speed) && isnan(Targets_aktuell(i).angle) && (Targets_aktuell(i).origin == ""))
@@ -682,13 +694,13 @@ while(1)
                                 Targets_aktuell(i).angle = Targets(minColumn(assignment_Counter)).angle;                            
                             end
                         else
-
                             %  Zuweisung frische Targets
                             Targets_aktuell(i) = Targets(i);
                             fprintf("Neues Target mit Range %.4f\n", Targets_aktuell(i).range)
                         end
+                      
                     end
-                    end
+                 end
 
                     %Hier werden alte Targets gelöscht, die nicht mehr zuweisbar sind 
                     if position < Max_RealTargets
