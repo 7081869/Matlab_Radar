@@ -23,7 +23,7 @@ Room_HighRangeLimit = 3;
 DetectionDistance = 1; 
 %max. Abstand zwischen altem und neuem Target, dass er noch als gleiches target erkannt wird 
 
-min_Difference_Location = NaN(Max_RealTargets,Max_RealTargets); %speichert gültige kleine Sbtandsdifferenz werte
+min_Difference_Location = NaN(Max_RealTargets,Max_RealTargets); %speichert gültige kleine Abstandsdifferenz werte
 Difference = NaN(Max_RealTargets,Max_RealTargets); %speichert die Difference
 
 clear k
